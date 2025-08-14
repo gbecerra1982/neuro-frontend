@@ -1,0 +1,1088 @@
+/* Base Styles */
+:root {
+  font-size: 2vh;
+  --primary-color: #0451DD;
+  --secondary-color: #0451DD;
+  --accent-color: #ff0000;
+  --text-color: #333333;
+  --light-text: #ffffff;
+  --dark-bg: #1a1a1a;
+  --light-bg: #f5f5f5;
+  --border-color: #dddddd;
+  --success-color: #28a745;
+  --danger-color: #dc3545;
+  --warning-color: #ffc107;
+  --font-size-base: 1rem;
+  --font-size-lg: 0.75rem;
+  --font-size-xl: 1.5rem;
+  --font-size-xxl: 2rem;
+  --header-height: 8vh;
+  --control-panel-height: 10vh;
+  --button-size: 3.5rem;
+  --icon-size: 1.6rem;
+  --button-spacing: 0.8rem;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  background-color: var(--dark-bg);
+  color: var(--text-color);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  font-size: var(--font-size-base);
+}
+
+/* Main Container */
+.main-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100vw;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background-color: #0450dde9;
+  color: var(--light-text);
+  height: var(--header-height);
+  box-shadow: 0 0.1px 0.5px rgba(0, 0, 0, 0.3);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+
+.header.hidden {
+  transform: translateY(-100%);
+}
+
+.logo img {
+  height: 1.5rem;
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 400;
+  margin: 0;
+  text-align: center;
+  flex-grow: 1;
+}
+
+
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: var(--primary-color);
+  color: var(--light-text);
+}
+
+.config-header h2 {
+  margin: 0;
+  font-weight: 400;
+  font-size: 20px;
+}
+
+.config-header button {
+  background: none;
+  border: none;
+  color: var(--light-text);
+  font-size: 24px;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.config-header button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.config-section {
+  /* padding: 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05); */
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+/* Config Panel */
+.config-section h3 {
+  color: var(--light-bg);
+  font-weight: 500;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+}
+
+/* Config Buttons */
+.config-buttons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+/* Config Buttons */
+.config-buttons .btn {
+  /* width: 100%;
+  height: auto;
+  border-radius: 50px;
+  padding: 14px 20px;
+  margin-bottom: 8px;
+  font-size: var(--font-size-lg); */
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  /* background-color: var(--secondary-color); */
+  color: var(--light-text);
+  font-size: var(--font-size-lg);
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--button-size) - 20px); 
+  height: calc(var(--button-size) - 20px); 
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#startSession{
+  background-color: #0451DD;
+}
+#stoptSession{
+  background-color: #0451DD;
+}
+
+.config-toggle button {
+  background: none;
+  border: none;
+  color: var(--light-text);
+  font-size: 22px;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+
+.config-toggle button:hover {
+  opacity: 1;
+}
+
+
+/* Nueva barra lateral en lugar de header */
+.side-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* width: 60px; */
+  height: 100vh;
+  background-color: transparent; /* transparente general */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 1000;
+  padding-top: 20px;
+}
+
+/* Caja del logo con fondo azul */
+.logo-box {
+  width: 10rem;
+  height: 2.3rem;
+  background-color: #0451DD;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  padding: 5px 20px 5px 8px;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  vertical-align: middle;
+  justify-content: flex-end;
+}
+
+.logo-box img {
+  height: 60%;
+  width: auto;
+}
+
+/* Controles de sesión en columna */
+
+/* Contenedor principal de controles de sesión */
+.session-container {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    margin-bottom: 3rem;
+}
+.session-container {
+  transition: transform 0.8s ease, opacity 0.3s ease;
+}
+
+.session-container.hidden {
+  transform: translateY(100%); /* mueve hacia abajo */
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Botón principal "Sesión" */
+.session-toggle {
+    background-color: #0451DD;
+    color: #fff;
+    border: none;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-self: flex-start;
+    justify-content: space-between;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    align-items: center;
+    width: 10rem;
+}
+.session-toggle span {
+    /* Nuevas propiedades para el tamaño de fuente adaptable */
+    font-size: clamp(0.6rem, 0.9rem, 1.2rem); /* Ejemplo: min 0.7rem, ideal 3vw, max 1.2rem */
+    letter-spacing: clamp(1px, 0.3vw, 3px); /* Puedes ajustar el espaciado entre letras también */
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap; /* Evita que el texto se rompa en varias líneas */
+    overflow: hidden; /* Oculta cualquier parte del texto que se desborde */
+    text-overflow: ellipsis; /* Añade puntos suspensivos si el texto se desborda y se oculta */
+    flex-grow: 1; /* Permite que el span ocupe el espacio disponible */
+    min-width: 0; /* Necesario para que overflow: hidden funcione correctamente con flexbox */
+}
+
+.arrow-container {
+  width: 2.1rem;
+  height: 2.1rem;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.arrow-container img {
+  height: 100%;
+}
+
+.session-toggle svg {
+    height: 1rem;
+    transition: transform 0.3s ease-in-out;
+    align-items: center;
+}
+
+.session-toggle.active svg {
+    transform: rotate(180deg);
+}
+
+/* Controles de sesión (inicialmente ocultos) */
+.session-controls {
+    display: none; /* Oculto por defecto */
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    justify-self: unset;
+}
+
+.session-controls.active {
+    display: flex; /* Se muestra cuando está activo */
+    align-items: center;
+    justify-content: center;
+}
+
+/* Botones de sesión */
+.session-controls .btn {
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.session-controls .btn:hover {
+    opacity: 0.8;
+}
+/* Video Container */
+.video-container {
+  position: absolute;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  top: 0;
+  right: 0;
+  width: 100vw;
+  height: 100%;
+  background-color: var(--dark-bg);
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Content Area */
+.content {
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+  z-index: 2;
+}
+
+/* Chat Overlay */
+.chat-overlay {
+  position: absolute;
+  top: calc(var(--header-height) + 20px);
+  right: 20px;
+  width: 30vw;
+  max-width: 400px;
+  height: calc(100% - var(--header-height) - var(--control-panel-height) - 40px);
+  z-index: 9999;
+}
+
+.chat-container {
+  /* height: 100%; */
+  background-color: rgba(214, 214, 214, 0.6);
+  border-radius: 1rem;
+  padding: 1rem;
+  backdrop-filter: blur(0.5rem);
+}
+
+/* Chat History */
+#chatHistory {
+  width: 100%;
+  height: 80vh;
+  background-color: transparent;
+  color: var(--light-text);
+  border: none;
+  resize: none;
+  font-size: var(--font-size-lg);
+  line-height: 1.6;
+  padding: 0.5rem;
+  overflow-y: auto;
+  font-weight: 300;
+  padding-bottom: 5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sound Wave Animation */
+.sound-wave-container {
+  padding: 1rem;
+  position: absolute;
+  bottom: calc(var(--control-panel-height) + 40px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20vw;
+  height: 10vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    ellipse 12vw 5vh at center,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.9) 10%,
+    rgba(0, 0, 0, 0.7) 30%,
+    rgba(0, 0, 0, 0.3) 50%,
+    rgba(0, 0, 0, 0) 75%
+  );
+  border-radius: 2rem;
+  z-index: 900;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+.sound-wave-container.active {
+  opacity: 0.9;
+}
+
+.sound-wave {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 70%;
+  height: 100%;
+}
+
+.sound-wave-bar {
+  width: 0.3rem;
+  height: 0.25rem;
+  background-color: var(--light-text);
+  border-radius: 0.15rem;
+  animation: sound-wave-anim 1s infinite ease-in-out;
+  margin: 0 0.05rem;
+}
+
+.sound-wave-bar:nth-child(1) {
+  animation-delay: 0.0s;
+}
+.sound-wave-bar:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.sound-wave-bar:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.sound-wave-bar:nth-child(4) {
+  animation-delay: 0.3s;
+}
+.sound-wave-bar:nth-child(5) {
+  animation-delay: 0.4s;
+}
+.sound-wave-bar:nth-child(6) {
+  animation-delay: 0.5s;
+}
+.sound-wave-bar:nth-child(7) {
+  animation-delay: 0.6s;
+}
+.sound-wave-bar:nth-child(8) {
+  animation-delay: 0.7s;
+}
+
+@keyframes sound-wave-anim {
+  0%,
+  100% {
+    height: 5px;
+  }
+  50% {
+    height: 30px;
+  }
+}
+
+/* Listening Indicator */
+.listening-indicator {
+  position: absolute;
+  top: calc(var(--header-height) + 1rem);
+  left: 1rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: var(--light-text);
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-size: var(--font-size-lg);
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(0.4rem);
+  z-index: 100;
+}
+
+.listening-indicator.active {
+  opacity: 1;
+}
+
+.listening-indicator .mic-icon {
+  color: var(--secondary-color);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Control Panel */
+
+.control-panel {
+  padding: 1rem;
+  min-height: var(--control-panel-height);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 900;
+  transition: min-height 0.3s ease;
+}
+
+.control-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--button-spacing);           /* Espacio entre botones */
+  padding: 0.5rem 1rem;                 /* Espacio interno del contenedor */
+  background-color: rgba(214, 214, 214, 0.6);
+  backdrop-filter: blur(0.5rem);
+  border-radius: 2rem;                 /* Bordes redondeados estilo cápsula */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombras suaves */
+  margin: 1rem auto;
+  max-width: 40%;  /* ajustable según cantidad de botones */
+}
+/* Control Panel Buttons */
+.btn {
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--secondary-color);
+  color: var(--light-text);
+  font-size: var(--font-size-lg);
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--button-size);
+  height: var(--button-size);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn.primary {
+  background-color: var(--primary-color);
+}
+
+.btn.danger {
+  background-color: var(--danger-color);
+}
+
+/* .btn.success {
+  background-color: var(--success-color);
+} */
+ /* Efecto de onda sonora para el botón de micrófono activo */
+.btn.success {
+  position: relative;
+  overflow: hidden;
+  width: calc(var(--button-size) + 20px); 
+  height: calc(var(--button-size) + 20px); 
+  z-index: 1;
+}
+
+/* Fondo con degradado para el botón de micrófono activo */
+.btn.success::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, #0033a0, #4b0082, #8a2be2, #4169e1, #0033a0);
+  background-size: 400% 400%;
+  z-index: -1;
+  animation: gradientWave 8s ease infinite, pulseWave 2s ease-in-out infinite;
+  border: 3px solid #4b0082; /* Borde verde */
+  border-radius: 50%; /* Mantener el círculo */
+}
+
+/* Capa para el efecto de onda sonora */
+.btn.success::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150%;
+  height: 150%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 60%);
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  opacity: 0;
+  animation: soundWaveEffect 2s ease-out infinite;
+}
+
+/* Aseguramos que el icono sea visible sobre el fondo animado */
+.btn.success svg {
+  position: relative;
+  z-index: 2;
+  color: white;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+}
+
+/* Animación para el degradado */
+@keyframes gradientWave {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Animación para el efecto de pulso */
+@keyframes pulseWave {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Animación para el efecto de onda sonora */
+@keyframes soundWaveEffect {
+  0% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+
+/* Añadimos un efecto de partículas para simular ondas sonoras */
+.sound-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  opacity: 0;
+  animation: particleAnimation 2s ease-out infinite;
+}
+
+@keyframes particleAnimation {
+  0% {
+    transform: translate(0, 0) scale(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(calc(var(--x) * 30px), calc(var(--y) * 30px)) scale(1);
+    opacity: 0;
+  }
+}
+
+.btn.active {
+  border: 3px solid var(--success-color); /* Borde verde */
+  background-color: var(--secondary-color); /* Azul como los otros botones */
+  border-radius: 50%; /* Mantener el círculo */
+}
+
+.btn svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+.message-input {
+  width: 100%;
+  margin-bottom: 15px;
+  bottom: calc(100% - var(--header-height) - var(--control-panel-height) - 40px);
+  left:70vw;
+}
+
+/* Message Input */
+#userMessageBox {
+  width: 100%;
+  padding: 14px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 24px;
+  font-size: var(--font-size-lg);
+  resize: none;
+  min-height: 60px;
+  max-height: 250px; /* Máximo permitido antes de scroll */
+  overflow-y: auto;
+  font-family: inherit;
+  background-color: rgba(214, 214, 214, 0.6);
+  backdrop-filter: blur(0.5rem);
+  color: #000;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#userMessageBox::placeholder {
+  color: rgba(0, 0, 0);
+}
+
+#userMessageBox:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 1px 5px rgba(0, 169, 224, 0.2);
+}
+
+/* Configuration Panel */
+.config-panel {
+  position: fixed;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  max-width: 500px;
+  height: 100vh;
+  background-color: white;
+  z-index: 1001;
+  overflow-y: auto;
+  transition: left 0.3s ease;
+  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.config-panel.active {
+  left: 0;
+}
+
+
+.config-row {
+  margin-bottom: 15px;
+}
+
+/* Config Panel */
+.config-row label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 400;
+  font-size: var(--font-size-base);
+  color: #555;
+}
+
+/* Config Panel */
+.config-row input[type="text"],
+.config-row textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: var(--font-size-base);
+}
+
+.config-row textarea {
+  min-height: 80px;
+}
+
+.config-row input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+
+.config-checkbox {
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+}
+
+.config-checkbox input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+/* Latency Log */
+.latency-container {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  width: 300px;
+  height: 200px;
+  z-index: 100;
+}
+
+#latencyLog {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: var(--light-text);
+  border: none;
+  border-radius: 12px;
+  resize: none;
+  font-size: 12px;
+  padding: 10px;
+  font-family: "Menlo", "Monaco", "Courier New", monospace;
+  backdrop-filter: blur(8px);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .chat-overlay {
+    width: 40%;
+  }
+}
+
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 18px;
+  }
+
+  .chat-overlay {
+    width: 30%;
+  }
+
+  .control-buttons {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+}
+
+/* Additional styles from original CSS */
+.hidden {
+  display: none;
+}
+
+video {
+  background: #222;
+  --width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Streaming text animation */
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.typing-text {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typing 1s steps(40, end);
+}
+
+/* Botón de Stop (fondo blanco, icono negro) */
+.btn.white-btn {
+  background-color: var(--secondary-color);
+  color: rgb(255, 255, 255);
+}
+
+.btn.white-btn:hover {
+  /* background-color: #f0f0f0; */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn.white-btn:active {
+  border: 3px solid var(--success-color); /* Borde verde */
+  background-color: var(--secondary-color); /* Azul como los otros botones */
+  border-radius: 50%; /* Mantener el círculo */
+  transform: translateY(0);
+}
+
+/* Clase para cuando el botón está en estado activo */
+.btn.white-btn.active-stop {
+  border: 3px solid var(--success-color); /* Borde verde */
+  background-color: var(--secondary-color); /* Azul como los otros botones */
+  border-radius: 50%; /* Mantener el círculo */
+}
+
+.btn.white-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Spinner de carga */	
+/* Fondo difuminado mientras carga */
+#overlayBlur {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  backdrop-filter: blur(6px);
+  background-color: rgba(214, 214, 214, 0.6);
+  backdrop-filter: blur(0.5rem);
+  z-index: 9998;
+}
+
+/* Caja de carga central */
+#loadingSpinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 30px 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  z-index: 9999;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Círculo de progreso */
+.circular-loader {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 8px solid #ccc;
+  border-top: 8px solid #007aff;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+
+/* ChatHistory Messages */
+.chat-bubble {
+  display: flex;
+  align-items: flex-start;
+  margin: 5px;
+  max-width: 80%;
+  animation: fadeInUp 0.3s ease forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+.avatar-user {
+  width: 35px;
+  height: 35px;
+  background-color: #007aff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 5px;
+  flex-shrink: 0;
+}
+.avatar-assistant {
+  width: 35px;
+  height: 35px;
+  background-color: #f1f0f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 5px;
+  flex-shrink: 0;
+  overflow: hidden; /*clave para que lo que se sale se recorte */
+}
+
+.chat-bubble.user {
+  justify-content: flex-end;
+  align-self: flex-end;
+}
+
+.chat-bubble.assistant {
+  justify-content: flex-start;
+  align-self: flex-start;
+}
+
+.chat-bubble .avatar-user svg {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin: 0 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.chat-bubble .avatar-assistant svg {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin: auto;
+  object-fit: cover;
+  color: #000;
+  flex-shrink: 0;
+}
+.chat-bubble .avatar-assistant img {
+  /* border-radius: 50%; */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.chat-bubble .bubble {
+  background-color: #e5e5ea;
+  color: #000;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.chat-bubble.user .bubble {
+  background-color: #007aff;
+  color: #fff;
+  border-top-right-radius: 4px;
+}
+
+.chat-bubble.assistant .bubble {
+  background-color: #f1f0f0;
+  border-top-left-radius: 4px;
+}
+
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

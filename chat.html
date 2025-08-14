@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asistente Virtual YPF - Neuro</title>
+  <link rel="stylesheet" href="static/css/styles.css">
+  <link rel="icon" href="static/image/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="static/js/sdk.js"></script>
+</head>
+
+<body>
+
+  <input type="hidden" id="clientId" value="{{ client_id | e }}">
+
+  <!-- Configuration Panel (Hidden by Default) -->
+  <div id="configuration" class="config-panel">
+    <div class="config-header">
+      <h2>Configuración</h2>
+      <button id="closeConfig" onclick="toggleConfig()">×</button>
+    </div>
+
+    <div class="config-section">
+      <h3>Chat Configuration</h3>
+      <div class="config-row">
+        <label for="azureOpenAIDeploymentName">Azure OpenAI Deployment Name:</label>
+        <input id="azureOpenAIDeploymentName" type="text" size="32" value="chat4og">
+      </div>
+      <div class="config-row">
+        <label for="prompt">System Prompt:</label>
+        <textarea id="prompt">Eres un asistente corporativo de la empresa de energia YPF llamado Neuro. Se breve y profesional ayudando a las preguntas o consultas que pueda tener el usuario. Intenta mantener tus respuestas por debajo de 256 caracteres. No es una regla estrita pero respuestas breves y concisas es lo esperado por la aplicacion.
+        </textarea>
+      </div>
+      <div class="config-row">
+        <input type="checkbox" id="enableOyd" onchange="window.updataEnableOyd()">
+        <label for="enableOyd">Enable On Your Data</label>
+      </div>
+
+      <div id="cogSearchConfig" hidden="hidden">
+        <div class="config-row">
+          <label for="azureCogSearchIndexName">Azure Cognitive Search Index Name:</label>
+          <input id="azureCogSearchIndexName" type="text" size="32">
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>Speech Configuration</h3>
+      <div class="config-row">
+        <label for="sttLocales">STT Locale(s):</label>
+        <input id="sttLocales" type="text" value="es-AR">
+      </div>
+      <div class="config-row">
+        <label for="ttsVoice">TTS Voice:</label>
+        <input id="ttsVoice" type="text" value="es-US-AlonsoNeural">
+      </div>
+      <div class="config-row">
+        <label for="customVoiceEndpointId">Custom Voice Deployment ID:</label>
+        <input id="customVoiceEndpointId" type="text" value="">
+
+        
+      </div>
+      <div class="config-row">
+        <label for="personalVoiceSpeakerProfileID">Personal Voice Speaker Profile ID:</label>
+        <input id="personalVoiceSpeakerProfileID" type="text" value="">
+      </div>
+      <div class="config-row">
+        <input type="checkbox" id="continuousConversation" checked>
+        <label for="continuousConversation">Continuous Conversation</label>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>Avatar Configuration</h3>
+      <div class="config-row">
+        <label for="talkingAvatarCharacter">Avatar Character:</label>
+        <input id="talkingAvatarCharacter" type="text" value="Harry">
+      </div>
+      <div class="config-row">
+        <label for="talkingAvatarStyle">Avatar Style:</label>
+        <input id="talkingAvatarStyle" type="text" value="youthful">
+      </div>
+      <div class="config-row">
+        <label for="backgroundImageUrl">Background Image (URL):</label>
+        <input id="backgroundImageUrl" type="text" value="https://novedades.ypf.com/images/Novedades%202024/rtic.webp">
+      </div>
+      <div class="config-row">
+        <input type="checkbox" id="customizedAvatar">
+        <label for="customizedAvatar">Custom Avatar</label>
+      </div>
+      <div class="config-row">
+        <input type="checkbox" id="autoReconnectAvatar" checked="checked">
+        <label for="autoReconnectAvatar">Auto Reconnect</label>
+      </div>
+      <div class="config-row">
+        <input type="checkbox" id="useLocalVideoForIdle" checked="checked" onchange="window.updateLocalVideoForIdle()">
+        <label for="useLocalVideoForIdle">Use Local Video for Idle</label>
+      </div>
+    </div>
+
+    <!-- Test Mode Section -->
+    <div class="config-section">
+      <h3>Modo de Prueba</h3>
+      <div class="config-row">
+        <input type="checkbox" id="testMode" onchange="window.toggleTestMode()">
+        <label for="testMode">Activar Modo de Prueba (sin backend)</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Interface -->
+  <div class="main-container">
+    <!-- Side Header -->
+    <div id="side-header" class="side-header">
+      <div class="logo-box">
+        <img src="static/image/ypf-logo.png" alt="YPF Logo">
+      </div>
+      <div class="session-container">
+        <button id="sessionToggle" class="session-toggle">
+          <!-- Sesión -->
+          <div class="arrow-container">
+            <img src="static/image/isolologo-neuro.png" alt="Logo">
+          </div>
+          <span>NEURO</span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ffff"
+            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+        <div id="sessionControls" class="session-controls">
+          <button id="startSession" onclick="window.startSession()" class="btn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v10" />
+              <path d="M5.5 7a8.38 8.38 0 0 0-.5 9 8.5 8.5 0 0 0 14 0 8.38 8.38 0 0 0-.5-9" />
+            </svg>
+          </button>
+          <button id="stopSession" onclick="window.stopSession()" disabled class="btn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18"></path>
+              <path d="m6 6 12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const sessionToggle = document.getElementById('sessionToggle');
+        const sessionControls = document.getElementById('sessionControls');
+
+        sessionToggle.addEventListener('click', () => {
+          sessionControls.classList.toggle('active');
+          sessionToggle.classList.toggle('active');
+        });
+      });
+    </script>
+
+    <!-- Video Container -->
+    <div id="videoContainer" class="video-container">
+      <div id="localVideo" hidden>
+        <video tabindex="-1" aria-hidden="true" autoplay loop muted playsinline>
+          <source src="{{ url_for('static', filename='video/harry-business.mp4') | e }}" type="video/mp4">
+          <track kind="subtitles" srclang="es" label="Español" src="data:," />
+        </video>
+      </div>
+      <div id="remoteVideo" class="remote-video"></div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="content">
+      <!-- Chat History Overlay -->
+      <div class="chat-overlay">
+        <div class="chat-container">
+          <div id="chatHistory" class="chat-history"></div>
+        </div>
+      </div>
+
+      <!-- Sound Wave Animation -->
+      <div id="soundWaveContainer" class="sound-wave-container">
+        <div class="sound-wave">
+          <div class="sound-wave-bar"></div>
+          <div class="sound-wave-bar"></div>
+          <div class="sound-wave-bar"></div>
+          <div class="sound-wave-bar"></div>
+          <div class="sound-wave-bar"></div>
+          <div class="sound-wave-bar"></div>
+          <div class="sound-wave-bar"></div>
+          <div class="sound-wave-bar"></div>
+        </div>
+      </div>
+
+      <!-- Listening Indicator -->
+      <div id="listeningIndicator" class="listening-indicator">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mic-icon">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+        </svg>
+        Escuchando...
+      </div>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+      <div class="control-buttons">
+
+        <button id="keyboardToggle" onclick="window.toggleKeyboard()" disabled="true" class="btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+            <path d="M6 8h.001"></path>
+            <path d="M10 8h.001"></path>
+            <path d="M14 8h.001"></path>
+            <path d="M18 8h.001"></path>
+            <path d="M8 12h.001"></path>
+            <path d="M12 12h.001"></path>
+            <path d="M16 12h.001"></path>
+            <path d="M7 16h10"></path>
+          </svg>
+        </button>
+        <button id="microphone" onclick="window.toggleMicrophone()" disabled="true" class="btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+          </svg>
+        </button>
+
+        <button id="stopButton" onclick="window.stopSpeaking()" disabled="true" class="btn white-btn"
+          onmousedown="this.classList.add('active-stop')" onmouseup="this.classList.remove('active-stop')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1.1rem" height="1.1rem" viewBox="0 0 24 24" fill="none"
+            stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="5" width="15" height="15" rx="2" ry="2" />
+          </svg>
+        </button>
+
+        <button id="clearChatHistory" onclick="window.clearChatHistory()" disabled="true" class="btn white-btn"
+          onmousedown="this.classList.add('active-stop')" onmouseup="this.classList.remove('active-stop')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1rem" height="1rem" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="message-input">
+        <textarea id="userMessageBox" placeholder="Escribe tu mensaje aquí y presiona Enter para enviar..."
+          hidden></textarea>
+      </div>
+    </div>
+
+    <!-- Latency Log (Hidden by Default) -->
+    <div class="latency-container">
+      <textarea id="latencyLog" hidden></textarea>
+    </div>
+  </div>
+
+  <script src="static/js/basic.js"></script>
+  <script src="static/js/chat-final.js"></script>
+
+</body>
+
+</html>

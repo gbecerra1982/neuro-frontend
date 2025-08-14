@@ -1,0 +1,306 @@
+al poner el app_configuration.py, importar librerias y client Auth sin SESSION_TYPE seteado. Obtengo el siguiente error:
+
+2025-07-23T12:26:22.271407624Z    _____
+2025-07-23T12:26:22.271445111Z   /  _  \ __________ _________   ____
+2025-07-23T12:26:22.271450540Z  /  /_\  \\___   /  |  \_  __ \_/ __ \
+2025-07-23T12:26:22.271454652Z /    |    \/    /|  |  /|  | \/\  ___/
+2025-07-23T12:26:22.271458887Z \____|__  /_____ \____/ |__|    \___  >
+2025-07-23T12:26:22.271463213Z         \/      \/                  \/
+2025-07-23T12:26:22.271467267Z A P P   S E R V I C E   O N   L I N U X
+2025-07-23T12:26:22.271471184Z
+2025-07-23T12:26:22.271474939Z Documentation: http://aka.ms/webapp-linux
+2025-07-23T12:26:22.271478548Z Python 3.11.12
+2025-07-23T12:26:22.271482345Z Note: Any data outside '/home' is not persisted
+2025-07-23T12:26:22.509456360Z Starting OpenBSD Secure Shell server: sshd.
+2025-07-23T12:26:22.515661098Z WEBSITES_INCLUDE_CLOUD_CERTS is not set to true.
+2025-07-23T12:26:22.531833616Z Updating certificates in /etc/ssl/certs...
+2025-07-23T12:26:24.426792922Z 2 added, 0 removed; done.
+2025-07-23T12:26:24.426821656Z Running hooks in /etc/ca-certificates/update.d...
+2025-07-23T12:26:24.432859647Z done.
+2025-07-23T12:26:24.432875794Z CA certificates copied and updated successfully.
+2025-07-23T12:26:24.462817054Z App Command Line not configured, will attempt auto-detect
+2025-07-23T12:26:24.462837473Z Launching oryx with: create-script -appPath /home/site/wwwroot -output /opt/startup/startup.sh -virtualEnvName antenv -defaultApp /opt/defaultsite
+2025-07-23T12:26:24.499049052Z Found build manifest file at '/home/site/wwwroot/oryx-manifest.toml'. Deserializing it...
+2025-07-23T12:26:24.499068296Z Build Operation ID: 546dc2d8b7b359dc
+2025-07-23T12:26:24.502905755Z Output is compressed. Extracting it...
+2025-07-23T12:26:24.502921863Z Extracting '/home/site/wwwroot/output.tar.gz' to directory '/tmp/8ddc96c7d15a82e'...
+2025-07-23T12:26:24.503044465Z Oryx Version: 0.2.20250505.1, Commit: bec89959884a7663432d6e3c4d36acc30657cb85, ReleaseTagName: 20250505.1
+2025-07-23T12:26:44.061127514Z App path is set to '/tmp/8ddc96c7d15a82e'
+2025-07-23T12:26:44.198271275Z Detected an app based on Flask
+2025-07-23T12:26:44.198343189Z Generating `gunicorn` command for 'app:app'
+2025-07-23T12:26:44.203753056Z Writing output script to '/opt/startup/startup.sh'
+2025-07-23T12:26:44.271293454Z Using packages from virtual environment antenv located at /tmp/8ddc96c7d15a82e/antenv.
+2025-07-23T12:26:44.271320638Z Updated PYTHONPATH to '/opt/startup/app_logs:/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages'
+2025-07-23T12:26:44.692149936Z [2025-07-23 12:26:44 +0000] [1017] [INFO] Starting gunicorn 23.0.0
+2025-07-23T12:26:44.701235673Z [2025-07-23 12:26:44 +0000] [1017] [INFO] Listening at: http://0.0.0.0:8000 (1017)
+2025-07-23T12:26:44.701259279Z [2025-07-23 12:26:44 +0000] [1017] [INFO] Using worker: sync
+2025-07-23T12:26:44.706927669Z [2025-07-23 12:26:44 +0000] [1020] [INFO] Booting worker with pid: 1020
+2025-07-23T12:26:54.993211416Z [2025-07-23 12:26:54 +0000] [1020] [ERROR] Exception in worker process
+2025-07-23T12:26:54.993246526Z Traceback (most recent call last):
+2025-07-23T12:26:54.993251475Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+2025-07-23T12:26:54.993255329Z     worker.init_process()
+2025-07-23T12:26:54.993258349Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 135, in init_process
+2025-07-23T12:26:54.993261666Z     self.load_wsgi()
+2025-07-23T12:26:54.993264776Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+2025-07-23T12:26:54.993268487Z     self.wsgi = self.app.wsgi()
+2025-07-23T12:26:54.993271808Z                 ^^^^^^^^^^^^^^^
+2025-07-23T12:26:54.993275135Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/gunicorn/app/base.py", line 66, in wsgi
+2025-07-23T12:26:54.993278572Z     self.callable = self.load()
+2025-07-23T12:26:54.993281737Z                     ^^^^^^^^^^^
+2025-07-23T12:26:54.993284699Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+2025-07-23T12:26:54.993288274Z     return self.load_wsgiapp()
+2025-07-23T12:26:54.993291560Z            ^^^^^^^^^^^^^^^^^^^
+2025-07-23T12:26:54.993294875Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+2025-07-23T12:26:54.993298465Z     return util.import_app(self.app_uri)
+2025-07-23T12:26:54.993302297Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-07-23T12:26:54.993306174Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/gunicorn/util.py", line 370, in import_app
+2025-07-23T12:26:54.993309956Z     mod = importlib.import_module(module)
+2025-07-23T12:26:54.993313097Z           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-07-23T12:26:54.993316617Z   File "/opt/python/3.11.12/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-07-23T12:26:54.993320252Z     return _bootstrap._gcd_import(name[level:], package, level)
+2025-07-23T12:26:54.993323538Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-07-23T12:26:54.993326712Z   File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-07-23T12:26:54.993330354Z   File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-07-23T12:26:54.993333845Z   File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-07-23T12:26:54.993337984Z   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-07-23T12:26:54.993341862Z   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-07-23T12:26:54.993355888Z   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-07-23T12:26:54.993359649Z   File "/tmp/8ddc96c7d15a82e/app.py", line 93, in <module>
+2025-07-23T12:26:54.993363321Z     auth = Auth(
+2025-07-23T12:26:54.993366483Z            ^^^^^
+2025-07-23T12:26:54.993370818Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/identity/flask.py", line 63, in __init__
+2025-07-23T12:26:54.993374456Z     super(Auth, self).__init__(app, *args, **kwargs)
+2025-07-23T12:26:54.993377792Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/identity/pallet.py", line 44, in __init__
+2025-07-23T12:26:54.993381054Z     self.init_app(app)
+2025-07-23T12:26:54.993384336Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/identity/pallet.py", line 50, in init_app
+2025-07-23T12:26:54.993388493Z     self._Session(app)
+2025-07-23T12:26:54.993391943Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/flask_session/__init__.py", line 27, in __init__
+2025-07-23T12:26:54.993395318Z     self.init_app(app)
+2025-07-23T12:26:54.993398470Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/flask_session/__init__.py", line 41, in init_app
+2025-07-23T12:26:54.993401727Z     app.session_interface = self._get_interface(app)
+2025-07-23T12:26:54.993404885Z                             ^^^^^^^^^^^^^^^^^^^^^^^^
+2025-07-23T12:26:54.993407927Z   File "/tmp/8ddc96c7d15a82e/antenv/lib/python3.11/site-packages/flask_session/__init__.py", line 184, in _get_interface
+2025-07-23T12:26:54.993411230Z     raise ValueError(f"Unrecognized value for SESSION_TYPE: {SESSION_TYPE}")
+2025-07-23T12:26:54.993414567Z ValueError: Unrecognized value for SESSION_TYPE: null
+2025-07-23T12:26:54.993491644Z [2025-07-23 12:26:54 +0000] [1020] [INFO] Worker exiting (pid: 1020)
+2025-07-23T12:26:55.744538521Z [2025-07-23 12:26:55 +0000] [1017] [ERROR] Worker (pid:1020) exited with code 3
+2025-07-23T12:26:55.745068131Z [2025-07-23 12:26:55 +0000] [1017] [ERROR] Shutting down: Master
+2025-07-23T12:26:55.745191875Z [2025-07-23 12:26:55 +0000] [1017] [ERROR] Reason: Worker failed to boot.
+2025-07-23T12:26:56.764Z ERROR - Container ydtzdapsgpt009_1_c2fb279a for site ydtzdapsgpt009 has exited, failing site start
+2025-07-23T12:26:56.765Z INFO  - Initiating warmup request to container ydtzdapsgpt009_1_c2fb279a_middleware for site ydtzdapsgpt009
+2025-07-23T12:26:57.090Z INFO  - Container ydtzdapsgpt009_1_c2fb279a_middleware for site ydtzdapsgpt009 initialized successfully and is ready to serve requests.
+2025-07-23T12:26:57.097Z ERROR - Container ydtzdapsgpt009_1_c2fb279a didn't respond to HTTP pings on port: 8000. Failing site start. See container logs for debugging.
+2025-07-23T12:26:57.105Z INFO  - Stopping site ydtzdapsgpt009 because it failed during startup.
+2025-07-23 12:26:56.999 +00:00 [Error] Middleware: Failed to forward request to http://169.254.134.5:8000. Encountered a System.Net.Http.HttpRequestException exception after 42.810ms with message: Connection refused (169.254.134.5:8000). Check application logs to verify the application is properly handling HTTP traffic.
+2025-07-23T12:28:35  No new trace in the past 1 min(s).
+2025-07-23T12:29:35  No new trace in the past 2 min(s).
+
+
+#===================================================
+#===================================================
+#===================================================
+#===================================================
+#===================================================
+#===================================================
+#===================================================
+#===================================================
+#===================================================
+#===================================================
+Que pasa si usamos session_type = 'filesystem'? está deprecateado y t re-dirije varias veces hasta que t bloquea la pagina. 
+
+En el navegador me tira el error del otro día. No rompe la aplicación, pero te encontrás con esto:
+
+Esta página no funciona
+avatar-voice-rag-dev.test.ypf.com te redireccionó demasiadas veces.
+
+Intenta borrar las cookies.
+ERR_TOO_MANY_REDIRECTS
+
+y el stream log se tiene esto:
+
+2025-07-24T12:31:33.025456484Z    _____
+2025-07-24T12:31:33.025959628Z   /  _  \ __________ _________   ____
+2025-07-24T12:31:33.025973266Z  /  /_\  \\___   /  |  \_  __ \_/ __ \
+2025-07-24T12:31:33.025977581Z /    |    \/    /|  |  /|  | \/\  ___/
+2025-07-24T12:31:33.025981348Z \____|__  /_____ \____/ |__|    \___  >
+2025-07-24T12:31:33.025984746Z         \/      \/                  \/
+2025-07-24T12:31:33.025988620Z A P P   S E R V I C E   O N   L I N U X
+2025-07-24T12:31:33.025992441Z
+2025-07-24T12:31:33.025995820Z Documentation: http://aka.ms/webapp-linux
+2025-07-24T12:31:33.025999428Z Python 3.11.12
+2025-07-24T12:31:33.026002977Z Note: Any data outside '/home' is not persisted
+2025-07-24T12:31:33.393015601Z Starting OpenBSD Secure Shell server: sshd.
+2025-07-24T12:31:33.429593292Z WEBSITES_INCLUDE_CLOUD_CERTS is not set to true.
+2025-07-24T12:31:33.553400867Z Updating certificates in /etc/ssl/certs...
+2025-07-24T12:31:35.126932512Z 2 added, 0 removed; done.
+2025-07-24T12:31:35.126947738Z Running hooks in /etc/ca-certificates/update.d...
+2025-07-24T12:31:35.129030804Z done.
+2025-07-24T12:31:35.132498914Z CA certificates copied and updated successfully.
+2025-07-24T12:31:35.151163593Z App Command Line not configured, will attempt auto-detect
+2025-07-24T12:31:35.151471606Z Launching oryx with: create-script -appPath /home/site/wwwroot -output /opt/startup/startup.sh -virtualEnvName antenv -defaultApp /opt/defaultsite
+2025-07-24T12:31:35.288731946Z Found build manifest file at '/home/site/wwwroot/oryx-manifest.toml'. Deserializing it...
+2025-07-24T12:31:35.290037540Z Build Operation ID: 06fd9e626cc74dca
+2025-07-24T12:31:35.290554068Z Oryx Version: 0.2.20250505.1, Commit: bec89959884a7663432d6e3c4d36acc30657cb85, ReleaseTagName: 20250505.1
+2025-07-24T12:31:35.290570309Z Output is compressed. Extracting it...
+2025-07-24T12:31:35.296430342Z Extracting '/home/site/wwwroot/output.tar.gz' to directory '/tmp/8ddcaad8b8a898c'...
+2025-07-24T12:31:50.352898998Z App path is set to '/tmp/8ddcaad8b8a898c'
+2025-07-24T12:31:50.355852029Z Detected an app based on Flask
+2025-07-24T12:31:50.355963721Z Generating `gunicorn` command for 'app:app'
+2025-07-24T12:31:50.358040355Z Writing output script to '/opt/startup/startup.sh'
+2025-07-24T12:31:50.930419996Z Using packages from virtual environment antenv located at /tmp/8ddcaad8b8a898c/antenv.
+2025-07-24T12:31:50.930453267Z Updated PYTHONPATH to '/opt/startup/app_logs:/tmp/8ddcaad8b8a898c/antenv/lib/python3.11/site-packages'
+2025-07-24T12:31:52.646909117Z [2025-07-24 12:31:52 +0000] [1015] [INFO] Starting gunicorn 23.0.0
+2025-07-24T12:31:52.661218898Z [2025-07-24 12:31:52 +0000] [1015] [INFO] Listening at: http://0.0.0.0:8000 (1015)
+2025-07-24T12:31:52.661242639Z [2025-07-24 12:31:52 +0000] [1015] [INFO] Using worker: sync
+2025-07-24T12:31:52.665476196Z [2025-07-24 12:31:52 +0000] [1018] [INFO] Booting worker with pid: 1018
+2025-07-24T12:32:02.850726234Z [2025-07-24 12:32:02,849][DEBUG][appServiceAppLogs][workerLogHandlerRegisterer] Waiting for the logs flag to be set
+2025-07-24T12:32:02.853103880Z [2025-07-24 12:32:02,852][INFO][appsvc_profiler.installer][__init__] Code Profiler Installer is starting up
+2025-07-24T12:32:02.853638025Z [2025-07-24 12:32:02,853][INFO][appsvc_profiler.installer][_cleanup_signal_handler_initialized_status_file] Cleaning up any existing status file which indicated signal handlers initialized status
+2025-07-24T12:32:02.856856809Z [2025-07-24 12:32:02,855][INFO][appsvc_profiler.installer][_cleanup_signal_handler_initialized_status_file] Attempting to delete the signal_handler status file for instance id 55f5da4a8c48930b0cc19bf9164d5e83a9da0288149c0108974f2a53c34bc635
+2025-07-24T12:32:02.858293745Z [2025-07-24 12:32:02,857][INFO][appsvc_profiler.installer][_cleanup_signal_handler_initialized_status_file] successfully deleted the status file
+2025-07-24T12:32:02.859024001Z [2025-07-24 12:32:02,858][DEBUG][appsvc_profiler.installer][_should_profiler_be_enabled] APPSETTING_WEBSITE_ENABLE_DEFAULT_CODE_PROFILER : None
+2025-07-24T12:32:02.911292362Z [2025-07-24 12:32:02,910][INFO][appsvc_profiler.installer][install] Attempting to install the default code profiler.
+2025-07-24T12:32:02.911848906Z [2025-07-24 12:32:02,911][DEBUG][appsvc_profiler.installer][install] viztracer would save traces to /tmp/55f5da_profiler_trace.json
+2025-07-24T12:32:02.911896547Z [2025-07-24 12:32:02,911][INFO][appsvc_profiler.installer][install] Successfully installed code profiler.
+2025-07-24T12:32:02.933509132Z [2025-07-24 12:32:02,933][INFO][appsvc_profiler.installer][_set_signal_handler_initialized_status] Signal Handlers SIGUSR for needed code-profiler have been initialized for gunicorn process on instance 55f5da4a8c48930b0cc19bf9164d5e83a9da0288149c0108974f2a53c34bc635
+2025-07-24T12:32:02.933621041Z [2025-07-24 12:32:02,933][DEBUG][appsvc_profiler.installer][shut_down] Code Profiler Installer is exiting as installation is completed
+2025-07-24T12:32:02.944046982Z 169.254.134.1 - - [24/Jul/2025:12:32:02 +0000] "GET /robots933456.txt HTTP/1.1" 404 207 "-" "HealthCheck/1.0"
+2025-07-24T12:32:03.122922713Z 169.254.134.10 - - [24/Jul/2025:12:32:03 +0000] "GET /robots933456.txt HTTP/1.1" 404 207 "-" "HealthCheck/1.0"
+2025-07-24T12:36:37.809455390Z [2025-07-24 12:36:37,809][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T12:36:37.810686553Z 169.254.134.10 - - [24/Jul/2025:12:36:37 +0000] "GET / HTTP/1.1" 302 189 "https://sandbox-1.reactblade.portal.azure.net/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T12:36:37.833330996Z [2025-07-24 12:36:37,833][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T12:36:37.834281362Z 169.254.134.10 - - [24/Jul/2025:12:36:37 +0000] "GET / HTTP/1.1" 302 189 "https://sandbox-1.reactblade.portal.azure.net/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T12:36:37.848458131Z [2025-07-24 12:36:37,848][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T12:36:37.849170142Z 169.254.134.10 - - [24/Jul/2025:12:36:37 +0000] "GET / HTTP/1.1" 302 189 "https://sandbox-1.reactblade.portal.azure.net/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T12:36:37.860976955Z [2025-07-24 12:36:37,860][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T12:36:37.861675366Z 169.254.134.10 - - [24/Jul/2025:12:36:37 +0000] "GET / HTTP/1.1" 302 189 "https://sandbox-1.reactblade.portal.azure.net/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T12:36:37.873616960Z [2025-07-24 12:36:37,873][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T12:36:37.874303588Z 169.254.134.10 - - [24/Jul/2025:12:36:37 +0000] "GET / HTTP/1.1" 302 189 "https://sandbox-1.reactblade.portal.azure.net/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T12:36:37.886494152Z [2025-07-24 12:36:37,886][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T12:36:37.887609520Z 169.254.134.10 - - [24/Jul/2025:12:36:37 +0000] "GET / HTTP/1.1" 302 189 "https://sandbox-1.reactblade.portal.azure.net/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T12:36:37.898517945Z [2025-07-24 12:36:37,898][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T12:36:37.899162142Z 169.254.134.10 - - [24/Jul/2025:12:36:37 +0000] "GET / HTTP/1.1" 302 189 "https://sandbox-1.reactblade.portal.azure.net/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T12:36:37.911593759Z [2025-07-24 12:36:37,911][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T12:38:16.731027951Z 169.254.134.10 - - [24/Jul/2025:12:38:16 +0000] "GET / HTTP/1.1" 302 189 "https://sandbox-1.reactblade.portal.azure.net/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T12:38:16.743570770Z [2025-07-24 12:38:16,743][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T12:38:16.744645936Z 169.254.134.10 - - [24/Jul/2025:12:38:16 +0000] "GET / HTTP/1.1" 302 189 "https://sandbox-1.reactblade.portal.azure.net/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+
+
+Esto del file system vi que lo usan seteando: 
+SESSION_TYPE = 'filesystem'
+SESSION_FILE_DIR = './flask_sessions'
+SESSION_PERMANENT = False
+
+Esta opcion tb la probé con el mismo log.
+#===================================================
+#===================================================
+#===================================================
+#===================================================
+#===================================================
+#===================================================
+cachelib en session_type:
+(sigo como lo hacen en esta pagina: https://flask-session.readthedocs.io/en/latest/usage.html):
+
+2025-07-24T14:26:43.821891663Z    _____
+2025-07-24T14:26:43.821935316Z   /  _  \ __________ _________   ____
+2025-07-24T14:26:43.821941755Z  /  /_\  \\___   /  |  \_  __ \_/ __ \
+2025-07-24T14:26:43.821946139Z /    |    \/    /|  |  /|  | \/\  ___/
+2025-07-24T14:26:43.821950299Z \____|__  /_____ \____/ |__|    \___  >
+2025-07-24T14:26:43.821954598Z         \/      \/                  \/
+2025-07-24T14:26:43.821959018Z A P P   S E R V I C E   O N   L I N U X
+2025-07-24T14:26:43.821962848Z
+2025-07-24T14:26:43.821966901Z Documentation: http://aka.ms/webapp-linux
+2025-07-24T14:26:43.821971307Z Python 3.11.12
+2025-07-24T14:26:43.821975197Z Note: Any data outside '/home' is not persisted
+2025-07-24T14:26:44.237421519Z Starting OpenBSD Secure Shell server: sshd.
+2025-07-24T14:26:44.241115177Z WEBSITES_INCLUDE_CLOUD_CERTS is not set to true.
+2025-07-24T14:26:44.253378698Z Updating certificates in /etc/ssl/certs...
+2025-07-24T14:26:45.944361333Z 2 added, 0 removed; done.
+2025-07-24T14:26:45.944384713Z Running hooks in /etc/ca-certificates/update.d...
+2025-07-24T14:26:45.945284390Z done.
+2025-07-24T14:26:45.949082234Z CA certificates copied and updated successfully.
+2025-07-24T14:26:45.964237528Z App Command Line not configured, will attempt auto-detect
+2025-07-24T14:26:45.964626059Z Launching oryx with: create-script -appPath /home/site/wwwroot -output /opt/startup/startup.sh -virtualEnvName antenv -defaultApp /opt/defaultsite
+2025-07-24T14:26:46.007394807Z Found build manifest file at '/home/site/wwwroot/oryx-manifest.toml'. Deserializing it...
+2025-07-24T14:26:46.008593236Z Build Operation ID: 30679fbdd8d5b599
+2025-07-24T14:26:46.009170085Z Oryx Version: 0.2.20250505.1, Commit: bec89959884a7663432d6e3c4d36acc30657cb85, ReleaseTagName: 20250505.1
+2025-07-24T14:26:46.009192634Z Output is compressed. Extracting it...
+2025-07-24T14:26:46.030897983Z Extracting '/home/site/wwwroot/output.tar.gz' to directory '/tmp/8ddcabda3ad67b3'...
+2025-07-24T14:27:00.066576302Z App path is set to '/tmp/8ddcabda3ad67b3'
+2025-07-24T14:27:00.070843326Z Detected an app based on Flask
+2025-07-24T14:27:00.070919673Z Generating `gunicorn` command for 'app:app'
+2025-07-24T14:27:00.073424472Z Writing output script to '/opt/startup/startup.sh'
+2025-07-24T14:27:00.184623248Z Using packages from virtual environment antenv located at /tmp/8ddcabda3ad67b3/antenv.
+2025-07-24T14:27:00.184670361Z Updated PYTHONPATH to '/opt/startup/app_logs:/tmp/8ddcabda3ad67b3/antenv/lib/python3.11/site-packages'
+2025-07-24T14:27:00.605502186Z [2025-07-24 14:27:00 +0000] [1017] [INFO] Starting gunicorn 23.0.0
+2025-07-24T14:27:00.614769500Z [2025-07-24 14:27:00 +0000] [1017] [INFO] Listening at: http://0.0.0.0:8000 (1017)
+2025-07-24T14:27:00.614844177Z [2025-07-24 14:27:00 +0000] [1017] [INFO] Using worker: sync
+2025-07-24T14:27:00.619169229Z [2025-07-24 14:27:00 +0000] [1020] [INFO] Booting worker with pid: 1020
+2025-07-24T14:27:12.869965516Z [2025-07-24 14:27:12,868][DEBUG][appServiceAppLogs][workerLogHandlerRegisterer] Waiting for the logs flag to be set
+2025-07-24T14:27:12.872061716Z [2025-07-24 14:27:12,871][INFO][appsvc_profiler.installer][__init__] Code Profiler Installer is starting up
+2025-07-24T14:27:12.872803263Z [2025-07-24 14:27:12,872][INFO][appsvc_profiler.installer][_cleanup_signal_handler_initialized_status_file] Cleaning up any existing status file which indicated signal handlers initialized status
+2025-07-24T14:27:12.878901089Z [2025-07-24 14:27:12,877][INFO][appsvc_profiler.installer][_cleanup_signal_handler_initialized_status_file] Attempting to delete the signal_handler status file for instance id 55f5da4a8c48930b0cc19bf9164d5e83a9da0288149c0108974f2a53c34bc635
+2025-07-24T14:27:12.878922825Z [2025-07-24 14:27:12,878][INFO][appsvc_profiler.installer][_cleanup_signal_handler_initialized_status_file] successfully deleted the status file
+2025-07-24T14:27:12.887136767Z [2025-07-24 14:27:12,878][DEBUG][appsvc_profiler.installer][_should_profiler_be_enabled] APPSETTING_WEBSITE_ENABLE_DEFAULT_CODE_PROFILER : None
+2025-07-24T14:27:12.991675023Z [2025-07-24 14:27:12,989][INFO][appsvc_profiler.installer][install] Attempting to install the default code profiler.
+2025-07-24T14:27:12.992198451Z [2025-07-24 14:27:12,991][DEBUG][appsvc_profiler.installer][install] viztracer would save traces to /tmp/55f5da_profiler_trace.json
+2025-07-24T14:27:12.993384590Z [2025-07-24 14:27:12,992][INFO][appsvc_profiler.installer][install] Successfully installed code profiler.
+2025-07-24T14:27:13.017292092Z [2025-07-24 14:27:13,016][INFO][appsvc_profiler.installer][_set_signal_handler_initialized_status] Signal Handlers SIGUSR for needed code-profiler have been initialized for gunicorn process on instance 55f5da4a8c48930b0cc19bf9164d5e83a9da0288149c0108974f2a53c34bc635
+2025-07-24T14:27:13.018637695Z [2025-07-24 14:27:13,017][DEBUG][appsvc_profiler.installer][shut_down] Code Profiler Installer is exiting as installation is completed
+2025-07-24T14:27:13.032845676Z 169.254.134.1 - - [24/Jul/2025:14:27:13 +0000] "GET /robots933456.txt HTTP/1.1" 404 207 "-" "HealthCheck/1.0"
+2025-07-24T14:27:13.296116236Z 169.254.134.6 - - [24/Jul/2025:14:27:13 +0000] "GET /robots933456.txt HTTP/1.1" 404 207 "-" "HealthCheck/1.0"
+2025-07-24T14:26:45.798138398Z Updated CA certificates
+2025-07-24T14:26:46.276841561Z warn: Microsoft.AspNetCore.Hosting.Diagnostics[15]
+2025-07-24T14:26:46.276865629Z       Overriding HTTP_PORTS '8080' and HTTPS_PORTS ''. Binding to values defined by URLS instead 'http://0.0.0.0:8181'.
+2025-07-24T14:26:41.451065776Z Updated CA certificates
+2025-07-24T14:26:42.098693859Z {"EventId":0,"LogLevel":"Information","Category":"Program","Message":"Entering app startup."}
+2025-07-24T14:26:42.965107573Z Hosting environment: Production
+2025-07-24T14:26:42.965132495Z Content root path: /app
+2025-07-24T14:26:42.965313712Z Now listening on: http://[::]:8081
+2025-07-24T14:27:42.163349509Z [2025-07-24 14:27:42,163][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.164475484Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.180598507Z [2025-07-24 14:27:42,180][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.181395184Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.193661881Z [2025-07-24 14:27:42,193][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.194317644Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.207104701Z [2025-07-24 14:27:42,206][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.207684472Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.219364307Z [2025-07-24 14:27:42,219][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.219928986Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.232920267Z [2025-07-24 14:27:42,232][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.233524366Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.245090372Z [2025-07-24 14:27:42,244][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.246261073Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.256600770Z [2025-07-24 14:27:42,256][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.257619300Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.268534649Z [2025-07-24 14:27:42,268][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.269135193Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.280778704Z [2025-07-24 14:27:42,280][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.281389827Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.293232123Z [2025-07-24 14:27:42,293][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.294050005Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.309165903Z [2025-07-24 14:27:42,309][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.309822908Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.321697034Z [2025-07-24 14:27:42,321][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.322255066Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.334058499Z [2025-07-24 14:27:42,333][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.334612438Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.347843513Z [2025-07-24 14:27:42,347][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.348484853Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.359843379Z [2025-07-24 14:27:42,359][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.360508899Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.374414675Z [2025-07-24 14:27:42,374][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.375149120Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.389286629Z [2025-07-24 14:27:42,389][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.390074276Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.402399784Z [2025-07-24 14:27:42,402][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.404099873Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:42.416202887Z [2025-07-24 14:27:42,416][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:42.417232417Z 169.254.134.6 - - [24/Jul/2025:14:27:42 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:43.529026057Z [2025-07-24 14:27:43,528][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:43.531053916Z 169.254.134.6 - - [24/Jul/2025:14:27:43 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:43.564272546Z [2025-07-24 14:27:43,564][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:43.565345338Z 169.254.134.6 - - [24/Jul/2025:14:27:43 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+2025-07-24T14:27:43.592317967Z [2025-07-24 14:27:43,592][WARNING][identity.web][complete_log_in] We found no prior log_in() info from current session. This situation may be caused by: (1) sessions were all reset due to a recent server restart, in which case you can simply start afresh with a new log-in, or (2) the session was stored on the file system of another server, in which case you must use either a centralized session store or a load balancer with sticky session (a.k.a. affinity cookie).
+2025-07-24T14:27:43.592935039Z 169.254.134.6 - - [24/Jul/2025:14:27:43 +0000] "GET / HTTP/1.1" 302 189 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+

@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YPF Voice Live + Sistema minipywo - MEJORADO</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2744 50%, #2a3754 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .ypf-logo {
+            background: linear-gradient(135deg, #007AFF 0%, #0056CC 100%);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 32px;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            display: inline-block;
+            box-shadow: 0 8px 32px rgba(0, 122, 255, 0.4);
+        }
+
+        .title {
+            font-size: 28px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #FF6B35;
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .improvements {
+            background: rgba(0, 255, 100, 0.1);
+            border: 2px solid rgba(0, 255, 100, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .improvements h3 {
+            color: #00FF64;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .improvements ul {
+            font-size: 14px;
+            color: #B0C4DE;
+            line-height: 1.4;
+        }
+
+        .improvements li {
+            margin-bottom: 5px;
+        }
+
+        .description {
+            color: #B0C4DE;
+            font-size: 16px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .main-interface {
+            display: flex;
+            gap: 40px;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 40px 0;
+        }
+
+        .avatar-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .avatar-container {
+            width: 320px;
+            height: 320px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #1a2744 0%, #2a3754 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 100px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 40px rgba(0, 122, 255, 0.3);
+            transition: all 0.3s ease;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .avatar-container.listening {
+            animation: pulse-listening 1.5s infinite;
+            box-shadow: 0 0 60px rgba(0, 255, 100, 0.6);
+            border-color: rgba(0, 255, 100, 0.5);
+        }
+
+        .avatar-container.thinking {
+            animation: pulse-thinking 0.8s infinite;
+            box-shadow: 0 0 60px rgba(255, 193, 7, 0.6);
+            border-color: rgba(255, 193, 7, 0.5);
+        }
+
+        .avatar-container.speaking {
+            animation: pulse-speaking 1s infinite;
+            box-shadow: 0 0 60px rgba(255, 107, 53, 0.8);
+            border-color: rgba(255, 107, 53, 0.5);
+        }
+
+        .avatar-container.vad-active {
+            animation: pulse-vad 0.6s infinite;
+            box-shadow: 0 0 80px rgba(255, 20, 147, 0.8);
+            border-color: rgba(255, 20, 147, 0.6);
+        }
+
+        @keyframes pulse-listening {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        @keyframes pulse-thinking {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        @keyframes pulse-speaking {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.05); }
+            75% { transform: scale(1.02); }
+        }
+
+        @keyframes pulse-vad {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+        }
+
+        .control-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .control-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 48px;
+            background: linear-gradient(135deg, #00FF64 0%, #00CC51 100%);
+            color: white;
+            transition: all 0.15s ease;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+        }
+
+        .control-button:active {
+            transform: scale(0.95);
+        }
+
+        .control-button.active {
+            background: linear-gradient(135deg, #FF3B30 0%, #CC2E24 100%);
+            animation: button-active 1s infinite;
+        }
+
+        @keyframes button-active {
+            0%, 100% { box-shadow: 0 12px 40px rgba(255, 59, 48, 0.4); }
+            50% { box-shadow: 0 16px 48px rgba(255, 59, 48, 0.6); }
+        }
+
+        .status {
+            margin: 20px 0;
+            font-weight: 600;
+            color: #00FF64;
+            font-size: 20px;
+            min-height: 30px;
+        }
+
+        .vad-info {
+            background: rgba(255, 20, 147, 0.1);
+            border: 1px solid rgba(255, 20, 147, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 15px 0;
+            font-size: 14px;
+            color: #FFB6C1;
+        }
+
+        .conversation-section {
+            max-width: 900px;
+            margin: 30px auto;
+        }
+
+        .conversation-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #B0C4DE;
+        }
+
+        .conversation {
+            max-height: 400px;
+            overflow-y: auto;
+            text-align: left;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .message {
+            margin: 15px 0;
+            padding: 15px 20px;
+            border-radius: 20px;
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, rgba(0, 122, 255, 0.3) 0%, rgba(0, 122, 255, 0.1) 100%);
+            margin-left: auto;
+            margin-right: 0;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.3) 0%, rgba(255, 107, 53, 0.1) 100%);
+            margin-right: auto;
+            margin-left: 0;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message.system {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.3) 0%, rgba(255, 193, 7, 0.1) 100%);
+            margin: 0 auto;
+            border-radius: 15px;
+            font-size: 14px;
+            max-width: 90%;
+        }
+
+        .message strong {
+            color: #FFD700;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .tech-info {
+            margin-top: 40px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            font-size: 14px;
+            color: #B0C4DE;
+            backdrop-filter: blur(10px);
+        }
+
+        .tech-badges {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .tech-badge {
+            background: rgba(0, 122, 255, 0.2);
+            color: #87CEEB;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .tech-badge.new {
+            background: rgba(0, 255, 100, 0.2);
+            color: #90EE90;
+        }
+
+        .error-message {
+            color: #FF6B6B;
+            background: rgba(255, 107, 107, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #FF6B6B;
+        }
+
+        .debug-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            color: #90EE90;
+            max-width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .debug-panel.show {
+            display: block;
+        }
+
+        #clientId {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-interface {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .avatar-container {
+                width: 280px;
+                height: 280px;
+                font-size: 80px;
+            }
+
+            .control-button {
+                width: 100px;
+                height: 100px;
+                font-size: 40px;
+            }
+
+            .ypf-logo {
+                font-size: 24px;
+                padding: 12px 24px;
+            }
+
+            .title {
+                font-size: 24px;
+            }
+
+            .debug-panel {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin: 20px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <input type="hidden" id="clientId" value="{{ client_id }}">
+
+    <div class="container">
+        <div class="header">
+            <div class="ypf-logo">YPF 🇦🇷</div>
+            <div class="title">Voice Live + Sistema minipywo - MEJORADO</div>
+            <div class="subtitle">Azure Semantic VAD + Detección de Voz Estable + Function Calling</div>
+            
+            <div class="improvements">
+                <h3>✅ MEJORAS IMPLEMENTADAS:</h3>
+                <ul>
+                    <li><strong>Azure Semantic VAD:</strong> Detección inteligente de fin de habla basada en contexto semántico</li>
+                    <li><strong>End-of-Utterance Detection:</strong> Modelo semantic_detection_v1 con threshold optimizado</li>
+                    <li><strong>Noise Reduction:</strong> Azure Deep Noise Suppression para mejor calidad de audio</li>
+                    <li><strong>Echo Cancellation:</strong> Server-side echo cancellation para eliminar eco</li>
+                    <li><strong>Audio Buffering Mejorado:</strong> Implementación asíncrona más estable</li>
+                    <li><strong>Manejo Completo de Eventos:</strong> Todos los eventos específicos de Voice Live API</li>
+                    <li><strong>Interrupciones Inteligentes:</strong> Detección y manejo de interrupciones del usuario</li>
+                </ul>
+            </div>
+            
+            <div class="description">
+                Implementación mejorada con configuraciones oficiales de Microsoft Voice Live API 
+                para máxima estabilidad en reconocimiento de voz y transcripción en español argentino.
+            </div>
+        </div>
+
+        <div class="main-interface">
+            <div class="avatar-section">
+                <div class="avatar-container" id="avatar">🎭</div>
+                <!-- ✅ NUEVO: Elemento HTML para el Avatar -->
+                <div class="avatar-video-container" style="width: 320px; height: 320px; border-radius: 24px; overflow: hidden; margin-bottom: 20px; display: none; box-shadow: 0 0 40px rgba(255, 107, 53, 0.4);">
+                    <video id="avatarVideo" autoplay muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+                </div>
+                <div class="status" id="status">Listo para iniciar con Azure Semantic VAD + Avatar Lisa</div>
+                <div class="vad-info" id="vadInfo" style="display: none;">
+                    VAD Threshold: <span id="vadThreshold">0.3</span> | 
+                    Silence: <span id="vadSilence">500ms</span> | 
+                    Audio Quality: <span id="audioQuality">Good</span>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <button class="control-button" id="controlButton" onclick="toggleVoiceLive()">🎙️</button>
+                <div style="color: #B0C4DE; font-size: 14px; max-width: 220px; text-align: center;">
+                    Presioná para hablar con Tomas usando detección semántica avanzada
+                </div>
+                <button onclick="toggleDebugPanel()" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                    🔧 Debug Panel
+                </button>
+            </div>
+        </div>
+
+        <div class="conversation-section">
+            <div class="conversation-header">💬 Conversación con Tomas (VAD Mejorado)</div>
+            <div class="conversation" id="conversation">
+                <div class="message system">
+                    <strong>Sistema:</strong>
+                    Voice Live API inicializado con configuraciones oficiales Microsoft: Azure Semantic VAD, 
+                    Noise Suppression, Echo Cancellation, detección de fin de habla mejorada y Avatar Lisa.
+                </div>
+                <div class="message assistant">
+                    <strong>Tomas (YPF Assistant):</strong>
+                    ¡Che! Soy Tomas con tecnología mejorada y ahora también con Avatar Lisa. Tengo detección de voz súper estable 
+                    con Azure Semantic VAD y un avatar visual que se sincroniza con mi voz. Hablá naturalmente que el sistema detecta mejor cuándo terminas 
+                    de hablar y elimina ruido de fondo automáticamente. ¡Probá preguntarme sobre YPF!
+                </div>
+            </div>
+        </div>
+
+        <div class="tech-info">
+            <strong>🚀 Tecnología Mejorada Implementada:</strong><br>
+            Configuraciones oficiales de Microsoft Voice Live API con Azure Semantic VAD, 
+            detección de fin de habla inteligente, supresión de ruido profundo, cancelación de eco del lado servidor
+            y Avatar Lisa sincronizado con audio mediante WebRTC.
+            
+            <div class="tech-badges">
+                <span class="tech-badge new">Azure Semantic VAD</span>
+                <span class="tech-badge new">End-of-Utterance Detection</span>
+                <span class="tech-badge new">Deep Noise Suppression</span>
+                <span class="tech-badge new">Server Echo Cancellation</span>
+                <span class="tech-badge new">Avatar Lisa</span>
+                <span class="tech-badge">Voz Tomas (ES-AR)</span>
+                <span class="tech-badge">Function Calling</span>
+                <span class="tech-badge">GPT-4o Realtime</span>
+                <span class="tech-badge new">Audio Buffer Asíncrono</span>
+                <span class="tech-badge new">Manejo Completo de Eventos</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+        <strong>🔧 Debug Panel - Voice Live API</strong><br>
+        <div id="debugLog"></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
+    <script>
+        // ================================
+        // 🔧 VARIABLES GLOBALES MEJORADAS
+        // ================================
+
+        let voiceLiveWebSocket = null;
+        let voiceLiveActive = false;
+        let audioContext = null;
+        let mediaStream = null;
+        let audioProcessor = null;
+        let audioSource = null;
+        let clientId = document.getElementById('clientId').value;
+        let voiceLiveConfig = null;
+        
+        // ✅ MEJORAS: Variables específicas para VAD y eventos mejorados
+        let currentTranscription = "";
+        let finalTranscription = "";
+        let audioChunkQueue = [];
+        let isPlayingAudio = false;
+        let vadActive = false;
+        let speechStartTime = null;
+        let speechEndTime = null;
+        let audioQualityMetrics = { noiseLevel: 0, signalLevel: 0 };
+        let interruptionDetected = false;
+        
+        // Debug logging mejorado
+        let debugLog = [];
+        let maxDebugEntries = 50;
+
+        const socket = io();
+
+        function getClientId() {
+            return document.getElementById('clientId').value || 'anonymous';
+        }
+
+        // ================================
+        // ✅ FUNCIONES DEBUG MEJORADAS
+        // ================================
+
+        function addDebugLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
+            debugLog.unshift(logEntry);
+            
+            if (debugLog.length > maxDebugEntries) {
+                debugLog = debugLog.slice(0, maxDebugEntries);
+            }
+            
+            updateDebugPanel();
+            console.log(logEntry);
+        }
+
+        function updateDebugPanel() {
+            const debugElement = document.getElementById('debugLog');
+            if (debugElement) {
+                debugElement.innerHTML = debugLog.join('<br>');
+            }
+        }
+
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debugPanel');
+            panel.classList.toggle('show');
+        }
+
+        // ================================
+        // ✅ INICIALIZACIÓN MEJORADA
+        // ================================
+
+        async function initializeVoiceLiveSystem() {
+            try {
+                addDebugLog("Iniciando sistema Voice Live con configuraciones mejoradas...", "info");
+                updateStatus("🔧 Configurando Voice Live API con Azure Semantic VAD...");
+                
+                const response = await fetch('/api/voice-live-config');
+                if (!response.ok) {
+                    throw new Error(`Backend config error: ${response.status}`);
+                }
+                
+                voiceLiveConfig = await response.json();
+                addDebugLog("Configuración obtenida del backend", "success");
+                
+                if (voiceLiveConfig.error) {
+                    throw new Error(voiceLiveConfig.message);
+                }
+                
+                updateStatus("✅ Configuración Voice Live cargada con mejoras");
+                addDebugLog("Sistema Voice Live inicializado correctamente", "success");
+                return true;
+                
+            } catch (error) {
+                addDebugLog(`Error inicializando Voice Live: ${error.message}`, "error");
+                showError(`Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        async function connectToVoiceLiveAPI() {
+            try {
+                updateStatus("🔗 Conectando a Voice Live API...");
+                addDebugLog("Estableciendo conexión WebSocket...", "info");
+                
+                const baseEndpoint = voiceLiveConfig.endpoint;
+                const model = voiceLiveConfig.model || 'gpt-4o';
+                const apiVersion = '2025-05-01-preview';
+                
+                const wsEndpoint = baseEndpoint.replace('https://', 'wss://');
+                const wsUrl = `${wsEndpoint}/voice-live/realtime?api-version=${apiVersion}&deployment=${model}&api-key=${encodeURIComponent(voiceLiveConfig.apiKey)}`;
+                console.log("WebSocket URL:", wsUrl);
+                
+                addDebugLog("Conectando a WebSocket endpoint...", "info");
+                
+                voiceLiveWebSocket = new WebSocket(wsUrl);
+                
+                voiceLiveWebSocket.onopen = () => {
+                    addDebugLog("WebSocket conectado exitosamente", "success");
+                    updateStatus("✅ Voice Live API conectado");
+                    setupImprovedVoiceLiveSession();
+                };
+                
+                voiceLiveWebSocket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        // Enhanced logging for avatar events
+                        if (data.type && data.type.includes('avatar')) {
+                            console.log("AVATAR EVENT RECEIVED:", data);
+                            addDebugLog(`Avatar event: ${data.type}`, "info");
+                        }
+                        handleImprovedVoiceLiveEvent(data);
+                    } catch (error) {
+                        addDebugLog(`Error parsing message: ${error.message}`, "error");
+                        console.error("Raw message that failed:", event.data);
+                    }
+                };
+                
+                voiceLiveWebSocket.onerror = (error) => {
+                    addDebugLog(`Error WebSocket: ${error}`, "error");
+                    updateStatus("❌ Error en Voice Live API");
+                };
+                
+                voiceLiveWebSocket.onclose = (event) => {
+                    addDebugLog(`Voice Live desconectado: ${event.code} - ${event.reason}`, "warning");
+                    updateStatus("🔌 Voice Live desconectado");
+                    voiceLiveActive = false;
+                    updateUI("idle");
+                };
+                
+            } catch (error) {
+                addDebugLog(`Error conectando: ${error.message}`, "error");
+                throw error;
+            }
+        }
+
+        // ================================
+        // ✅ CONFIGURACIÓN MEJORADA CON AZURE SEMANTIC VAD
+        // ================================
+
+        function setupImprovedVoiceLiveSession() {
+            const sessionConfig = {
+                type: "session.update",
+                session: {
+                    // ✅ INSTRUCCIONES MEJORADAS PARA FUNCTION CALLING
+                    instructions: `Eres Tomas, un asistente especializado en YPF Argentina que habla con acento argentino natural. 
+                        MUY IMPORTANTE Recuerdalo siempre, la "Y" nunca la pronuncies como "Y griega" simplemente dila como una I comun.
+                        
+                        COMPORTAMIENTO MEJORADO:
+                        - Para consultas generales o saludos: Responde directamente con amabilidad y acento argentino
+                        - Para preguntas específicas sobre YPF (equipos, pozos, workover, datos técnicos, procedimientos, sistemas):
+                        1. PRIMERO responde amablemente: "¡Dale! Te busco esa información de YPF al toque..."
+                        2. DESPUÉS usa la función 'query_minipywo' para obtener datos actualizados
+                        3. FINALMENTE responde con la información obtenida
+
+                        DETECCIÓN DE INTERRUPCIONES:
+                        - Si detectás que el usuario te interrumpe, para inmediatamente y preguntá: "¿Me interrumpiste? ¿Qué necesitás?"
+                        - Sé consciente de las interrupciones y manejá la conversación de forma natural
+                        
+                        EJEMPLOS:
+                        - "Hola" → Respuesta directa: "¡Che! ¿Cómo andás? Soy Tomas, acá para ayudarte con todo lo de YPF"
+                        - "¿Qué tal el clima?" → Respuesta directa amable
+                        - "¿Qué es un workover?" → "¡Dale! Te busco esa información técnica de YPF..." + function call
+                        - "Datos del pozo X" → "¡Perfecto! Déjame consultar los datos del pozo en el sistema..." + function call
+                        
+                        TONO: Amigable, argentino, usando expresiones como "che", "dale", "al toque", "bárbaro", etc.
+                        Nunca dejes al usuario esperando en silencio - siempre da alguna respuesta inmediata antes de buscar información específica.
+                        
+                        MUY IMPORTANTE - Como Pronucniar los nombres de los equipos que trabajan en YPF
+                        En la coluna A tienes el nombre completo, en la columna B tienes como suena literal cuando se dice en voz alta, y es asi como lo vas a tener que detectar:
+                        EQUIPO | PRONUNCIACIÓN LITERAL
+                        -------|----------------------
+                        DLS ARCHER LTD S.A.-169 | de ele ese ciento sesenta y nueve
+                        PETREX S.A.-30 | Pétrex treinta
+                        HELMERICH & PAYNE ARG. DRILLING CO-224 | Jelmérich y Pein doscientos veinticuatro
+                        NABORS INTERNATIONAL ARGENTINA S.R.-F07 | Néibors efe cero siete
+                        DLS ARCHER LTD S.A.-168 | de ele ese ciento sesenta y ocho
+                        NABORS INTERNATIONAL ARGENTINA S.R.-F03 | Néibors efe cero tres
+                        NABORS INTERNATIONAL ARGENTINA S.R.-990 | Néibors novecientos noventa
+                        NABORS INTERNATIONAL ARGENTINA S.R.-1211 | Néibors mil doscientos once
+                        DLS ARCHER LTD S.A.-167 | de ele ese ciento sesenta y siete
+                        HELMERICH & PAYNE ARG. DRILLING CO-229 | Jelmérich y Pein doscientos veintinueve
+                        NABORS INTERNATIONAL ARGENTINA S.R.-F35 | Néibors efe treinta y cinco
+                        SAN ANTONIO INTERNACIONAL S.A-209 | San Antonio doscientos nueve
+                        A-EVANGELISTA-207 | A Evangelista doscientos siete
+                        A-EVANGELISTA-201 | A Evangelista doscientos uno
+                        CLEAR PETROLEUM S.A-202 | Clíar Petroleum doscientos dos
+                        TACKER S.R.L.-07 | Tácker cero siete
+                        EL TRONADOR S.R.L.-24 | El Tronador veinticuatro
+                        EL TRONADOR S.R.L.-20 | El Tronador veinte
+                        EL TRONADOR S.R.L.-16 | El Tronador dieciséis
+                        EL TRONADOR S.R.L.-15 | El Tronador quince
+                        PETRO-NEU S.A.-104 | Petro Neu ciento cuatro
+                        SAN ANTONIO INTERNACIONAL S.A-231 | San Antonio doscientos treinta y uno
+                        EL TRONADOR S.R.L.-22 | El Tronador veintidós
+                        EL TRONADOR S.R.L.-21 | El Tronador veintiuno
+                        EL TRONADOR S.R.L.-25 | El Tronador veinticinco
+                        TACKER S.R.L.-01 | Tácker cero uno
+                        TACKER S.R.L.-02 | Tácker cero dos                
+                        `,
+                    
+                    voice: {
+                        name: "es-AR-TomasNeural",
+                        type: "azure-standard",
+                        temperature: 0.8
+                    },
+                    
+                    // ✅ CONFIGURACIÓN MEJORADA AZURE SEMANTIC VAD
+                    turn_detection: {
+                        type: "server_vad",
+                        threshold: 0.5,                     // Threshold optimizado
+                        prefix_padding_ms: 300,             // Más padding para mejor detección
+                        silence_duration_ms: 500,           // Optimizado para español argentino
+                        remove_filler_words: true,          // Remover muletillas
+                        
+                        // ✅ NUEVA: Detección de fin de habla semántica
+                        // end_of_utterance_detection: {
+                        //     model: "semantic_detection_v1",
+                        //     threshold: 0.05,                // Threshold semántico optimizado
+                        //     timeout: 3,                     // Timeout más largo para español
+                        // },
+                        
+                        // ✅ NUEVA: Configuración de interrupciones
+                        interrupt_threshold: 0.7,          // Threshold para detectar interrupciones
+                        interrupt_silence_ms: 200,         // Silencio mínimo para confirmar interrupción
+                    },
+                    
+                    input_audio_format: "pcm16",
+                    output_audio_format: "pcm16",
+                    input_audio_sampling_rate: 24000,
+                    
+                    input_audio_transcription: {
+                        model: "whisper-1",
+                        language: "es",                     // Especificar español para mejor precisión
+                        prompt: "YPF, workover, equipos de perforación, pozos petroleros, Argentina" // Contexto específico
+                    },
+                    
+                    // // ✅ NUEVAS: Configuraciones de calidad de audio
+                    // input_audio_noise_reduction: {
+                    //     type: "azure_deep_noise_suppression",
+                    //     // strength: "high"                    // Supresión de ruido alta
+                    // },
+                    
+                    // input_audio_echo_cancellation: {
+                    //     type: "server_echo_cancellation",
+                    //     // strength: "high"                    // Cancelación de eco alta
+                    // },
+                    
+                    // ✅ NUEVA: Configuración de timestamps de audio
+                    output_audio_timestamp_types: ["word"], // Timestamps por palabra
+                    
+                    modalities: ["text", "audio"],
+                    temperature: 0.7,
+                    max_response_output_tokens: 4096,
+                    
+                    // ✅ FUNCTION CALLING PARA MINIPYWO
+                    tools: [{
+                        type: "function",
+                        name: "query_minipywo",
+                        description: "Consulta el sistema minipywo de YPF para obtener información sobre equipos, pozos, workover, y datos técnicos",
+                        parameters: {
+                            type: "object",
+                            properties: {
+                                query: {
+                                    type: "string",
+                                    description: "La consulta del usuario que necesita ser procesada por minipywo"
+                                }
+                            },
+                            required: ["query"]
+                        }
+                    }],
+                    tool_choice: "auto",
+                    avatar: {
+                        character: "lisa",
+                        style: "casual-sitting",                        
+                        video: {
+                            codec: "h264",
+                            bitrate: 2000000,
+                            resolution: {
+                                width: 1280,
+                                height: 720
+                            }
+                        }
+                    }
+                }
+            };
+
+            addDebugLog("Enviando configuración mejorada con Azure Semantic VAD...", "info");
+            
+            try {
+                voiceLiveWebSocket.send(JSON.stringify(sessionConfig));
+                addDebugLog("Configuración enviada exitosamente", "success");
+                
+                // Mostrar información del VAD
+                updateVADInfo(sessionConfig.session.turn_detection);
+                
+                setTimeout(async () => {
+                    if (voiceLiveWebSocket.readyState === WebSocket.OPEN) {
+                        await startImprovedAudioCapture();
+                    }
+                }, 2000);
+                
+            } catch (error) {
+                addDebugLog(`Error enviando configuración: ${error.message}`, "error");
+            }
+        }
+
+        function updateVADInfo(turnDetectionConfig) {
+            const vadInfo = document.getElementById('vadInfo');
+            const vadThreshold = document.getElementById('vadThreshold');
+            const vadSilence = document.getElementById('vadSilence');
+            const audioQuality = document.getElementById('audioQuality');
+            
+            if (vadInfo && vadThreshold && vadSilence) {
+                vadInfo.style.display = 'block';
+                vadThreshold.textContent = turnDetectionConfig.threshold;
+                vadSilence.textContent = turnDetectionConfig.silence_duration_ms + 'ms';
+                audioQuality.textContent = 'Excellent';
+            }
+        }
+
+        // ================================
+        // ✅ CAPTURA DE AUDIO MEJORADA
+        // ================================
+
+        async function startImprovedAudioCapture() {
+            try {
+                updateStatus("🎤 Iniciando captura de audio mejorada...");
+                addDebugLog("Solicitando acceso al micrófono...", "info");
+                
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+                
+                // ✅ CONFIGURACIÓN MEJORADA DE AUDIO
+                const audioConstraints = {
+                    audio: {
+                        sampleRate: 24000,
+                        channelCount: 1,
+                        echoCancellation: true,           // Echo cancellation local también
+                        noiseSuppression: true,           // Noise suppression local
+                        autoGainControl: true,            // Auto gain control
+                        googEchoCancellation: true,       // Google echo cancellation
+                        googAutoGainControl: true,        // Google auto gain
+                        googNoiseSuppression: true,       // Google noise suppression
+                        googHighpassFilter: true,         // Highpass filter
+                        googTypingNoiseDetection: true,   // Typing noise detection
+                    }
+                };
+                
+                mediaStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+                addDebugLog("Micrófono obtenido con configuración mejorada", "success");
+
+                audioSource = audioContext.createMediaStreamSource(mediaStream);
+                
+                // ✅ BUFFER SIZE OPTIMIZADO
+                audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                audioProcessor.onaudioprocess = (event) => {
+                    if (voiceLiveWebSocket && voiceLiveWebSocket.readyState === WebSocket.OPEN) {
+                        const inputData = event.inputBuffer.getChannelData(0);
+                        
+                        // ✅ ANÁLISIS DE CALIDAD DE AUDIO
+                        analyzeAudioQuality(inputData);
+                        
+                        const pcm16 = new Int16Array(inputData.length);
+                        for (let i = 0; i < inputData.length; i++) {
+                            pcm16[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32767));
+                        }
+                        
+                        const audioData = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
+                        voiceLiveWebSocket.send(JSON.stringify({
+                            type: "input_audio_buffer.append",
+                            audio: audioData
+                        }));
+                    }
+                };
+
+                audioSource.connect(audioProcessor);
+                audioProcessor.connect(audioContext.destination);
+                
+                updateStatus("🎤 Tomas está escuchando con VAD mejorado...");
+                updateUI("listening");
+                voiceLiveActive = true;
+                addDebugLog("Captura de audio iniciada con éxito", "success");
+                
+            } catch (error) {
+                addDebugLog(`Error iniciando audio: ${error.message}`, "error");
+                showError(`Error de micrófono: ${error.message}`);
+            }
+        }
+
+        // ✅ NUEVA: Análisis de calidad de audio
+        function analyzeAudioQuality(audioData) {
+            // Calcular nivel de señal
+            let sum = 0;
+            for (let i = 0; i < audioData.length; i++) {
+                sum += Math.abs(audioData[i]);
+            }
+            const signalLevel = sum / audioData.length;
+            
+            // Calcular nivel de ruido (simplificado)
+            let variance = 0;
+            for (let i = 0; i < audioData.length; i++) {
+                variance += Math.pow(audioData[i] - signalLevel, 2);
+            }
+            const noiseLevel = Math.sqrt(variance / audioData.length);
+            
+            audioQualityMetrics.signalLevel = signalLevel;
+            audioQualityMetrics.noiseLevel = noiseLevel;
+            
+            // Actualizar indicador de calidad
+            const audioQuality = document.getElementById('audioQuality');
+            if (audioQuality) {
+                if (signalLevel > 0.01 && noiseLevel < 0.005) {
+                    audioQuality.textContent = 'Excellent';
+                } else if (signalLevel > 0.005) {
+                    audioQuality.textContent = 'Good';
+                } else {
+                    audioQuality.textContent = 'Low';
+                }
+            }
+        }
+
+        // ================================
+        // ✅ MANEJO MEJORADO DE EVENTOS DE VOICE LIVE API
+        // ================================
+
+        async function handleImprovedVoiceLiveEvent(event) {
+            addDebugLog(`Event recibido: ${event.type}`, "info");
+
+            switch (event.type) {
+                case "session.created":
+                    updateStatus("✅ Sesión Voice Live creada");
+                    addDebugLog(`Session ID: ${event.session?.id}`, "success");
+                    break;
+
+                case "session.updated":
+                    updateStatus("Voice Live configured - Azure Semantic VAD active");
+                    addDebugLog("Session configuration updated", "success");
+                    if (event.session?.avatar?.ice_servers) {
+                        addDebugLog(`Received ${event.session.avatar.ice_servers.length} ICE servers for avatar`, "info");
+                        // Add delay to ensure session is fully ready
+                        setTimeout(() => {
+                            setupAvatarWebRTC(event.session.avatar.ice_servers);
+                        }, 1000);
+                    } else if (event.session?.avatar) {
+                        addDebugLog("Avatar configured but no ICE servers provided, using defaults", "warning");
+                        setTimeout(() => {
+                            setupAvatarWebRTC([]);
+                        }, 1000);
+                    }
+                    break;
+
+                // ✅ SPEECH EVENTS MEJORADOS
+                case "input_audio_buffer.speech_started":
+                    addDebugLog("SPEECH STARTED - Usuario empezó a hablar", "info");
+                    speechStartTime = Date.now();
+                    vadActive = true;
+                    currentTranscription = "";
+                    finalTranscription = "";
+                    
+                    // ✅ MANEJO DE INTERRUPCIONES
+                    if (isPlayingAudio) {
+                        addDebugLog("INTERRUPCIÓN DETECTADA - Pausando audio", "warning");
+                        interruptionDetected = true;
+                        stopCurrentAudioPlayback();
+                    }
+                    
+                    updateUI("vad-active");
+                    updateStatus("👂 VAD Activo - Detectando habla...");
+                    break;
+
+                case "speech.hypothesis":
+                case "conversation.item.input_audio_transcription.delta":
+                    if (event.delta || event.partial_text) {
+                        currentTranscription = event.delta || event.partial_text;
+                        addDebugLog(`Transcripción parcial: "${currentTranscription}"`, "info");
+                        updateStatus(`👂 Escuchando: "${currentTranscription}"`);
+                    }
+                    break;
+
+                case "input_audio_buffer.speech_stopped":
+                    addDebugLog("SPEECH STOPPED - Usuario terminó de hablar", "info");
+                    speechEndTime = Date.now();
+                    vadActive = false;
+                    
+                    if (speechStartTime) {
+                        const speechDuration = speechEndTime - speechStartTime;
+                        addDebugLog(`Duración del habla: ${speechDuration}ms`, "info");
+                    }
+                    
+                    updateUI("listening");
+                    break;
+
+                case "conversation.item.input_audio_transcription.completed":
+                    const transcript = event.transcript || event.text || finalTranscription;
+                    addDebugLog(`Transcripción final: "${transcript}"`, "success");
+                    
+                    if (transcript && transcript.trim()) {
+                        finalTranscription = transcript;
+                        addMessage('user', transcript);
+                        updateStatus("🔄 Procesando con Azure Semantic VAD...");
+                        
+                        // ✅ MANEJO DE INTERRUPCIONES
+                        if (interruptionDetected) {
+                            addDebugLog("Procesando interrupción del usuario", "info");
+                            interruptionDetected = false;
+                        }
+                    } 
+                    break;
+
+                // ✅ FUNCTION CALLING EVENTS
+                case "response.function_call_arguments.delta":
+                    addDebugLog(`Function call args delta: ${event.delta}`, "info");
+                    break;
+
+                case "response.function_call_arguments.done":
+                    addDebugLog(`Function call completed: ${event.name}`, "success");
+                    
+                    if (event.call_id && event.name === "query_minipywo") {
+                        await handleMinipywoFunctionCall(event.call_id, event.arguments);
+                    }
+                    break;
+
+                // ✅ RESPONSE EVENTS MEJORADOS
+                case "response.created":
+                    addDebugLog("Response created - AI iniciando respuesta", "info");
+                    updateUI("thinking");
+                    updateStatus("🧠 Procesando con minipywo...");
+                    break;
+
+                case "response.audio.delta":
+                    const audioData = event.audio || event.delta;
+                    if (audioData && !interruptionDetected) {
+                        playImprovedAudioData(audioData);
+                    }
+                    break;
+
+                case "response.audio_transcript.delta":
+                    if (event.delta) {
+                        addDebugLog(`Response transcript delta: "${event.delta}"`, "info");
+                    }
+                    break;
+
+                case "response.audio_transcript.done":
+                    if (event.transcript) {
+                        addDebugLog(`Response transcript final: "${event.transcript}"`, "success");
+                        addMessage('assistant', event.transcript);
+                    }
+                    break;
+
+                case "response.done":
+                    addDebugLog("Response completed", "success");
+                    updateUI("listening");
+                    updateStatus("🎤 Listo para nueva consulta con VAD mejorado");
+                    break;
+
+                case "response.audio.done":
+                    addDebugLog("Audio response completed", "success");
+                    updateUI("listening");
+                    updateStatus("🎤 Listo para nueva consulta");
+                    break;
+
+                // ✅ ERROR HANDLING MEJORADO
+                case "error":
+                    // ========== ENHANCED ERROR LOGGING ==========
+                    console.log("==================== API ERROR ====================");
+                    console.log("Full error object:", event);
+                    console.log("Error message:", event.error?.message);
+                    console.log("Error code:", event.error?.code);
+                    console.log("Error param:", event.error?.param);
+                    console.log("===================================================");
+                    addDebugLog(`Voice Live Error: ${JSON.stringify(event.error)}`, "error");
+                    showError(`Error: ${event.error?.message || 'Unknown error'}`);
+                    // ========== END OF ENHANCED LOGGING ==========
+                    break;
+
+                // ✅ EVENTOS DEL AVATAR
+                case "session.avatar.connecting":
+                    addDebugLog("Avatar connecting...", "info");
+                    if (event.sdp) {
+                        await handleAvatarSDP(event.sdp);
+                    } else if (event.server_sdp) {
+                        await handleAvatarSDP(event.server_sdp);
+                    } else if (event.answer) {
+                        await handleAvatarSDP(event.answer);
+                    } else {
+                        addDebugLog("WARNING: No SDP found in avatar.connecting event", "warning");
+                        console.log("Full event for debugging:", event);
+                    }
+                    break;
+
+                case "session.avatar.connected":
+                    addDebugLog("Avatar connected successfully", "success");
+                    updateStatus("🎭 Avatar Lisa synchronized");
+                    const videoContainer = document.querySelector('.avatar-video-container');
+                    const emojiContainer = document.querySelector('.avatar-container');
+                    if (videoContainer) videoContainer.style.display = 'block';
+                    if (emojiContainer) emojiContainer.style.display = 'none';
+                    break;
+
+                default:
+                    addDebugLog(`Evento no manejado: ${event.type}`, "warning");
+                    break;
+            }
+        }
+
+        // ✅ NUEVA: Función para detener reproducción actual
+        function stopCurrentAudioPlayback() {
+            audioChunkQueue = [];
+            isPlayingAudio = false;
+            addDebugLog("Reproducción de audio detenida por interrupción", "warning");
+        }
+
+        // ================================
+        // ✅ FUNCTION CALL HANDLER MEJORADO
+        // ================================
+
+        async function handleMinipywoFunctionCall(callId, argumentsString) {
+            try {
+                updateStatus("🧠 Consultando minipywo con datos mejorados...");
+                updateUI("thinking");
+                addDebugLog(`Ejecutando function call: ${argumentsString}`, "info");
+                
+                const args = JSON.parse(argumentsString);
+                
+                // ✅ LLAMAR AL BACKEND MINIPYWO
+                const response = await fetch('/api/minipywo-process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: args.query,
+                        client_id: getClientId(),
+                        vad_metrics: {
+                            speech_duration: speechEndTime - speechStartTime,
+                            audio_quality: audioQualityMetrics,
+                            interruption: interruptionDetected
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Backend error: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                let minipywoResponse;
+                if (result.status === 'success') {
+                    minipywoResponse = result.response;
+                    addDebugLog(`Respuesta minipywo exitosa: ${minipywoResponse.substring(0, 100)}...`, "success");
+                    addMessage('assistant', minipywoResponse);
+                } else {
+                    minipywoResponse = `Error: ${result.message || 'Error desconocido'}`;
+                    addDebugLog(`Error en minipywo: ${minipywoResponse}`, "error");
+                }
+                
+                // ✅ ENVIAR RESULTADO DE VUELTA A VOICE LIVE
+                const functionResult = {
+                    type: "conversation.item.create",
+                    item: {
+                        type: "function_call_output", 
+                        call_id: callId,
+                        output: minipywoResponse
+                    }
+                };
+                
+                voiceLiveWebSocket.send(JSON.stringify(functionResult));
+                
+                // ✅ SOLICITAR RESPUESTA FINAL
+                const createResponse = {
+                    type: "response.create",
+                    response: {
+                        modalities: ["text", "audio"]
+                    }
+                };
+                
+                setTimeout(() => {
+                    voiceLiveWebSocket.send(JSON.stringify(createResponse));
+                    addDebugLog("Respuesta solicitada después de function call", "success");
+                }, 100);
+                
+            } catch (error) {
+                addDebugLog(`Error en function call: ${error.message}`, "error");
+                
+                // ✅ ENVIAR ERROR DE VUELTA A VOICE LIVE
+                const errorResult = {
+                    type: "conversation.item.create", 
+                    item: {
+                        type: "function_call_output",
+                        call_id: callId,
+                        output: `Error: ${error.message}`
+                    }
+                };
+                
+                voiceLiveWebSocket.send(JSON.stringify(errorResult));
+            }
+        }
+
+        // ✅ REPRODUCCIÓN DE AUDIO MEJORADA
+        function playImprovedAudioData(audioData) {
+            try {
+                const binaryString = atob(audioData);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                
+                const pcm16 = new Int16Array(bytes.buffer);
+                const float32 = new Float32Array(pcm16.length);
+                for (let i = 0; i < pcm16.length; i++) {
+                    float32[i] = pcm16[i] / 32768.0;
+                }
+                
+                const audioBuffer = audioContext.createBuffer(1, float32.length, 24000);
+                audioBuffer.getChannelData(0).set(float32);
+                
+                audioChunkQueue.push(audioBuffer);
+                
+                if (!isPlayingAudio && !interruptionDetected) {
+                    playNextImprovedAudioChunk();
+                }
+                
+            } catch (error) {
+                addDebugLog(`Error reproduciendo audio: ${error.message}`, "error");
+            }
+        }
+
+        function playNextImprovedAudioChunk() {
+            if (audioChunkQueue.length === 0 || interruptionDetected) {
+                isPlayingAudio = false;
+                return;
+            }
+            
+            isPlayingAudio = true;
+            updateUI("speaking");
+            updateStatus("🔊 Reproduciendo respuesta de Tomas...");
+            
+            const audioBuffer = audioChunkQueue.shift();
+            
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+            
+            source.onended = () => {
+                if (!interruptionDetected) {
+                    playNextImprovedAudioChunk();
+                } else {
+                    isPlayingAudio = false;
+                    addDebugLog("Reproducción interrumpida por el usuario", "warning");
+                }
+            };
+            
+            source.start();
+        }
+
+        // ✅ LIMPIEZA MEJORADA DE SESIÓN
+        async function cleanupSession() {
+            addDebugLog("Iniciando limpieza de sesión...", "info");
+
+            if (peerConnection) {
+                addDebugLog("Closing WebRTC peer connection", "info");
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            const videoContainer = document.querySelector('.avatar-video-container');
+            const emojiContainer = document.querySelector('.avatar-container');
+            const avatarVideo = document.getElementById('avatarVideo');
+            if (videoContainer) videoContainer.style.display = 'none';
+            if (emojiContainer) {
+                emojiContainer.style.display = 'block';
+                emojiContainer.textContent = '🎭';
+            }
+            if (avatarVideo) avatarVideo.srcObject = null;
+            // END OF AVATAR CLEANUP
+            
+            voiceLiveActive = false;
+            vadActive = false;
+            currentTranscription = "";
+            finalTranscription = "";
+            audioChunkQueue = [];
+            isPlayingAudio = false;
+            interruptionDetected = false;
+            speechStartTime = null;
+            speechEndTime = null;
+            
+            if (voiceLiveWebSocket) {
+                voiceLiveWebSocket.close();
+                voiceLiveWebSocket = null;
+            }
+            
+            if (audioProcessor) {
+                audioProcessor.disconnect();
+                audioProcessor = null;
+            }
+            
+            if (audioSource) {
+                audioSource.disconnect();
+                audioSource = null;
+            }
+            
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            
+            if (audioContext) {
+                await audioContext.close();
+                audioContext = null;
+            }
+            
+            // Ocultar info VAD
+            const vadInfo = document.getElementById('vadInfo');
+            if (vadInfo) vadInfo.style.display = 'none';
+            
+            updateUI("idle");
+            updateStatus("💤 Desconectado - Listo para reiniciar con VAD mejorado");
+            addDebugLog("Sesión limpiada completamente", "success");
+        }
+
+        async function toggleVoiceLive() {
+            if (!voiceLiveActive) {
+                const initialized = await initializeVoiceLiveSystem();
+                if (initialized) {
+                    await connectToVoiceLiveAPI();
+                }
+            } else {
+                await cleanupSession();
+            }
+        }
+
+        function updateUI(state) {
+            const avatar = document.getElementById('avatar');
+            const controlButton = document.getElementById('controlButton');
+            
+            avatar.className = 'avatar-container';
+            
+            switch (state) {
+                case "connecting":
+                    avatar.textContent = "🔗";
+                    break;
+                case "listening":
+                    avatar.classList.add('listening');
+                    avatar.textContent = "👂";
+                    break;
+                case "vad-active":
+                    avatar.classList.add('vad-active');
+                    avatar.textContent = "🎯";
+                    break;
+                case "processing":
+                    avatar.textContent = "🔄";
+                    break;
+                case "thinking":
+                    avatar.classList.add('thinking');
+                    avatar.textContent = "🧠";
+                    break;
+                case "speaking":
+                    avatar.classList.add('speaking');
+                    avatar.textContent = "🗣️";
+                    break;
+                case "idle":
+                    avatar.textContent = "🎭";
+                    break;
+            }
+
+            if (voiceLiveActive) {
+                controlButton.classList.add('active');
+                controlButton.textContent = '🛑';
+            } else {
+                controlButton.classList.remove('active');
+                controlButton.textContent = '🎙️';
+            }
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+            addDebugLog(message, "status");
+        }
+
+        function addMessage(role, text) {
+            const conversation = document.getElementById('conversation');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            let roleName = '';
+            switch(role) {
+                case 'user': roleName = 'Vos'; break;
+                case 'assistant': roleName = 'Tomas (YPF)'; break;
+                case 'system': roleName = 'Sistema'; break;
+            }
+            
+            messageDiv.innerHTML = `<strong>${roleName}:</strong> ${text}`;
+            conversation.appendChild(messageDiv);
+            conversation.scrollTop = conversation.scrollHeight;
+        }
+
+        function showError(message) {
+            const conversation = document.getElementById('conversation');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            conversation.appendChild(errorDiv);
+            conversation.scrollTop = conversation.scrollHeight;
+            
+            updateStatus("❌ " + message);
+            updateUI("idle");
+        }
+
+        // ✅ EVENT LISTENERS MEJORADOS
+        socket.on('connect', () => {
+            addDebugLog('Conectado al backend', "success");
+        });
+
+        socket.on('status', (data) => {
+            addDebugLog(`Backend status: ${data.message}`, "info");
+        });
+
+        window.addEventListener('load', () => {
+            addDebugLog('Voice Live + minipywo + Avatar interface loaded (MEJORADO)', "success");
+            addMessage('system', 'Sistema cargado con configuraciones mejoradas: Azure Semantic VAD, Deep Noise Suppression, Echo Cancellation, detección de interrupciones y Avatar Lisa sincronizado con audio.');
+        });
+
+        // ✅ MANEJO DE ERRORES GLOBALES
+        window.addEventListener('error', (event) => {
+            addDebugLog(`Error global: ${event.error?.message || event.message}`, "error");
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            addDebugLog(`Promise rejección no manejada: ${event.reason}`, "error");
+        });
+
+        // ================================
+        // ✅ FUNCIONES WEBRTC PARA AVATAR
+        // ================================
+
+        let peerConnection = null;
+
+        async function setupAvatarWebRTC(iceServers) {
+            try {
+                addDebugLog("Configurando WebRTC para avatar...", "info");
+                // ========== ADD IMMEDIATE DEBUG ==========
+                console.log("AVATAR SETUP STARTED");
+                console.log("ICE Servers received:", iceServers);
+                // Check if avatar is actually enabled
+                if (!iceServers || iceServers.length === 0) {
+                    console.log("WARNING: No ICE servers provided - Avatar might not be enabled in your deployment");
+                    addDebugLog("No ICE servers - Avatar might be disabled", "warning");
+                    return; // Exit early if no ICE servers
+                }
+                // ========== END DEBUG ==========
+                if (peerConnection) peerConnection.close(); // Cleanup previa si ya hay una vieja
+                
+                // ✅ NUEVO: Agregar STUN servers públicos para resolver 127.0.0.1
+                const publicStunServers = [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun.cloudflare.com:3478' },
+                    ...iceServers  // Los ICE servers de Microsoft después
+                ];
+                addDebugLog(`Usando ${publicStunServers.length} ICE servers (${publicStunServers.length - iceServers.length} públicos + ${iceServers.length} de Microsoft)`, "info");
+                
+                peerConnection = new RTCPeerConnection({ iceServers: publicStunServers }); // ✅ Usar servers combinados
+                peerConnection.addTransceiver('video', { direction: 'recvonly' });
+                peerConnection.addTransceiver('audio', { direction: 'recvonly' });
+                peerConnection.ontrack = (event) => {
+                    addDebugLog("Stream de video del avatar recibido", "success");
+                    const avatarVideo = document.getElementById('avatarVideo');
+                    avatarVideo.srcObject = event.streams[0];
+                };
+                peerConnection.onicecandidateerror = (event) => {
+                    addDebugLog(`ICE candidate error: ${event.errorCode} ${event.errorText}`, "error");
+                };
+                
+                // ✅ NUEVO: Logging de ICE candidates para debug
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        addDebugLog(`ICE candidate: ${event.candidate.candidate}`, "info");
+                    }
+                };
+                
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                console.log("LOCAL DESCRIPTION SET");
+                console.log("Initial ICE Gathering State:", peerConnection.iceGatheringState);
+
+                // // Force send after short delay regardless of ICE state
+                // setTimeout(() => {
+                //     console.log("FORCING AVATAR CONNECTION ATTEMPT");
+                //     console.log("Current ICE State:", peerConnection.iceGatheringState);
+                //     const avatarMessage = {
+                //         type: "session.avatar.connect",
+                //         sdp: peerConnection.localDescription.sdp
+                //     };
+                //     console.log("=====================================");
+                //     console.log("FORCING AVATAR CONNECT MESSAGE:");
+                //     console.log("Message:", JSON.stringify(avatarMessage).substring(0, 200));
+                //     console.log("=====================================");
+                //     voiceLiveWebSocket.send(JSON.stringify(avatarMessage));
+                //     addDebugLog("Avatar message forced after 2 seconds", "warning");
+                    
+                //     resolve(); // Resolve immediately
+                // }, 
+                
+                // 2000); // Wait only 2 seconds then force send
+
+                addDebugLog("Esperando ICE candidates...", "info");
+                console.log("SDP generado:", peerConnection.localDescription.sdp);
+                addDebugLog("Complete SDP generated: " + peerConnection.localDescription.sdp.substring(0, 100) + "...", "info");
+                return new Promise((resolve, reject) => {
+                    peerConnection.onicegatheringstatechange = () => {
+                        addDebugLog(`ICE gathering state: ${peerConnection.iceGatheringState}`, "info");
+
+                        if (peerConnection.iceGatheringState === 'complete') {
+                            addDebugLog("ICE candidates complete, sending SDP...", "success");
+
+                            setTimeout(() => {
+                                console.log("FORCING AVATAR CONNECTION ATTEMPT");
+                                console.log("Current ICE State:", peerConnection.iceGatheringState);
+                                const avatarMessage = {
+                                    type: "session.avatar.connect",
+                                    sdp: peerConnection.localDescription.sdp
+                                };
+                                console.log("=====================================");
+                                console.log("FORCING AVATAR CONNECT MESSAGE:");
+                                console.log("Message:", JSON.stringify(avatarMessage).substring(0, 200));
+                                console.log("=====================================");
+                                voiceLiveWebSocket.send(JSON.stringify(avatarMessage));
+                                addDebugLog("Avatar message forced after 2 seconds", "warning");
+                                
+                                resolve(); // Resolve immediately
+                            }, 
+                            
+                            2000); // Wait only 2 seconds then force send
+
+
+                            // ========== ADD THIS DEBUG CODE ==========
+                            // const avatarConnectMessage = {
+                            //     type: "session.avatar.connect",
+                            //     sdp: peerConnection.localDescription.sdp
+                            // };
+                            // console.log("=====================================");
+                            // console.log("AVATAR CONNECT MESSAGE BEING SENT:");
+                            // console.log("Message structure:", JSON.stringify(avatarConnectMessage, null, 2));
+                            // console.log("SDP first 500 chars:", avatarConnectMessage.sdp.substring(0, 500));
+                            // console.log("SDP length:", avatarConnectMessage.sdp.length);
+                            // console.log("Message keys:", Object.keys(avatarConnectMessage));
+                            // console.log("=====================================");
+                            // voiceLiveWebSocket.send(JSON.stringify(avatarConnectMessage));
+                            // addDebugLog("Avatar connect message sent", "info");
+                            // // ========== END OF DEBUG CODE ==========
+
+                            // resolve();
+                        }
+                    };
+                //     setTimeout(() => {
+                //         if (peerConnection.iceGatheringState !== 'complete') {
+
+                //             addDebugLog("Timeout waiting ICE candidates, sending partial SDP...", "warning");
+                //             // ========== ADD THIS DEBUG CODE ==========
+                //             const timeoutMessage = {
+                //                 type: "session.avatar.connect",
+                //                 sdp: peerConnection.localDescription.sdp
+                //             };
+                //             console.log("=====================================");
+                //             console.log("TIMEOUT AVATAR MESSAGE BEING SENT:");
+                //             console.log("Message structure:", JSON.stringify(timeoutMessage, null, 2));
+                //             console.log("=====================================");
+                //             voiceLiveWebSocket.send(JSON.stringify(timeoutMessage));
+                //             // ========== END OF DEBUG CODE ==========
+
+                //             resolve();
+                //         }
+                //     }, 5000);
+                 });
+            } catch (error) {
+                addDebugLog(`Error setup WebRTC: ${error.message}`, "error");
+                if (peerConnection) peerConnection.close();
+            }
+        }
+
+        async function handleAvatarSDP(serverSdp) {
+            try {
+                if (!peerConnection) {
+                    addDebugLog("ERROR: PeerConnection not initialized", "error");
+                    return;
+                }
+                addDebugLog("Configuring server SDP", "info");
+                console.log("Server SDP received (first 200 chars):", serverSdp.substring(0, 200));
+                await peerConnection.setRemoteDescription({
+                    type: 'answer',
+                    sdp: serverSdp
+                });
+                addDebugLog("Avatar WebRTC connected successfully", "success");
+                updateStatus("Avatar handshake complete");
+            } catch (error) {
+                addDebugLog(`WebRTC SDP Error: ${error.message}`, "error");
+                console.error("Full error details:", error);
+            }
+        }
+
+    </script>
+</body>
+</html>
