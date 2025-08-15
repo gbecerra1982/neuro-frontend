@@ -5,36 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Azure OpenAI Realtime API with Avatar Support - Production</title>
     
-    <!-- SDK de Azure Speech - Múltiples opciones de carga -->
-    <!-- Opción 1: CDN principal de Microsoft -->
+    <!-- SDK de Azure Speech - CDN principal de Microsoft -->
     <script crossorigin="anonymous" src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
     
-    <!-- Script de verificación y carga con fallback -->
+    <!-- Script de verificación y carga con fallback mejorado -->
     <script>
         // Sistema de carga robusto del SDK
-        let sdkLoadAttempts = 0;
-        const maxSdkLoadAttempts = 3;
-        let sdkReady = false;
+        window.sdkReady = false;
         
         function waitForSDK() {
             return new Promise((resolve, reject) => {
                 let checkCount = 0;
-                const maxChecks = 30; // 15 segundos máximo
+                const maxChecks = 30;
                 
                 const checkInterval = setInterval(() => {
                     checkCount++;
                     
-                    // Verificar si el SDK está disponible
                     if (typeof window.SpeechSDK !== 'undefined') {
                         clearInterval(checkInterval);
                         console.log('✅ Azure Speech SDK loaded successfully');
                         
-                        // Verificar versión
                         const version = window.SpeechSDK.SDKVersion || window.SpeechSDK.Version || 'Unknown';
                         console.log('SDK Version:', version);
-                        console.log('Available SDK classes:', Object.keys(window.SpeechSDK).slice(0, 10));
                         
-                        sdkReady = true;
+                        window.sdkReady = true;
                         resolve(true);
                     } else if (checkCount >= maxChecks) {
                         clearInterval(checkInterval);
@@ -50,14 +44,16 @@
         // Función de carga con fallback
         async function loadSDKWithFallback() {
             try {
-                // Esperar carga inicial
                 await waitForSDK();
                 return true;
             } catch (error) {
                 console.error('Initial SDK load failed:', error);
+                console.log('🔄 Attempting fallback SDK load...');
                 
-                // Intentar cargar desde CDN alternativo
-                console.log('🔄 Attempting fallback SDK load from jsDelivr...');
+                const failedScript = document.querySelector('script[src*="aka.ms"]');
+                if (failedScript) {
+                    failedScript.remove();
+                }
                 
                 return new Promise((resolve, reject) => {
                     const script = document.createElement('script');
@@ -66,12 +62,11 @@
                     
                     script.onload = async () => {
                         try {
-                            // Dar tiempo para que el script se inicialice
-                            await new Promise(r => setTimeout(r, 1000));
+                            await new Promise(r => setTimeout(r, 2000));
                             
                             if (typeof window.SpeechSDK !== 'undefined') {
                                 console.log('✅ SDK loaded from fallback CDN');
-                                sdkReady = true;
+                                window.sdkReady = true;
                                 resolve(true);
                             } else {
                                 reject(new Error('SDK not available after fallback load'));
@@ -588,7 +583,6 @@
             border-color: rgba(255, 255, 255, 0.3);
         }
 
-        /* Loading indicator */
         .loading-indicator {
             display: none;
             position: fixed;
@@ -665,7 +659,6 @@
             }
         }
 
-        /* Scrollbar styling */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -724,7 +717,7 @@
                     <div class="avatar-placeholder" id="avatarPlaceholder">AI</div>
                 </div>
                 <div class="avatar-video-container" id="avatarVideoContainer">
-                    <video id="avatarVideo" autoplay muted playsinline></video>
+                    <video id="avatarVideo" autoplay playsinline></video>
                 </div>
                 <div class="status" id="status">Initializing SDK...</div>
                 
@@ -876,11 +869,435 @@
         const RECONNECT_DELAY = 2000;
         const MAX_DEBUG_ENTRIES = 200;
         
-        // Azure Speech configuration from .env
+        // Azure Speech configuration
         const AZURE_SPEECH_KEY = '4MoZOYx6C0Ej5I7SlujmBXfUi8MKHRw0R00DKzCYT5uOpz6fqNQAJQQJ99BHAC8vTInXJ3w3AAAYACOG6znw';
         const AZURE_SPEECH_REGION = 'westus2';
         const AZURE_AVATAR_CHARACTER = 'lisa';
         const AZURE_AVATAR_STYLE = 'casual-sitting';
+        
+        // ================================
+        // LOGGING AND DEBUG SYSTEM
+        // ================================
+        
+        function log(message, type = 'INFO', data = null) {
+            const timestamp = new Date().toISOString();
+            const logEntry = {
+                time: timestamp,
+                type: type.toUpperCase(),
+                message,
+                data
+            };
+            
+            debugLog.unshift(logEntry);
+            if (debugLog.length > MAX_DEBUG_ENTRIES) {
+                debugLog = debugLog.slice(0, MAX_DEBUG_ENTRIES);
+            }
+            
+            const styles = {
+                'INFO': 'color: #00FF64',
+                'WARNING': 'color: #FFC107',
+                'ERROR': 'color: #FF5252',
+                'SUCCESS': 'color: #4CAF50',
+                'NETWORK': 'color: #2196F3',
+                'AUDIO': 'color: #9C27B0',
+                'AVATAR': 'color: #FF9800',
+                'METRICS': 'color: #00BCD4'
+            };
+            
+            console.log(
+                `%c[${timestamp.split('T')[1].split('.')[0]}] [${logEntry.type}] ${message}`,
+                styles[logEntry.type] || 'color: #B0C4DE'
+            );
+            
+            if (data) {
+                console.log('Data:', data);
+            }
+            
+            updateDebugPanel();
+        }
+        
+        function updateDebugPanel() {
+            const debugElement = document.getElementById('debugLog');
+            if (!debugElement) return;
+            
+            const html = debugLog.slice(0, 100).map(entry => {
+                const timeStr = entry.time.split('T')[1].split('.')[0];
+                const typeColors = {
+                    'INFO': '#00FF64',
+                    'WARNING': '#FFC107',
+                    'ERROR': '#FF5252',
+                    'SUCCESS': '#4CAF50',
+                    'NETWORK': '#2196F3',
+                    'AUDIO': '#9C27B0',
+                    'AVATAR': '#FF9800',
+                    'METRICS': '#00BCD4'
+                };
+                const color = typeColors[entry.type] || '#B0C4DE';
+                
+                let dataHtml = '';
+                if (entry.data) {
+                    dataHtml = `<pre style="color: #999; margin-left: 20px; font-size: 10px; margin-top: 5px;">${JSON.stringify(entry.data, null, 2)}</pre>`;
+                }
+                
+                return `
+                    <div class="debug-entry">
+                        <span class="debug-time">[${timeStr}]</span>
+                        <span class="debug-type" style="color: ${color};">[${entry.type}]</span>
+                        <span class="debug-message">${entry.message}</span>
+                        ${dataHtml}
+                    </div>
+                `;
+            }).join('');
+            
+            debugElement.innerHTML = html;
+        }
+        
+        // ================================
+        // AZURE SPEECH AVATAR FUNCTIONS - CORRECTED
+        // ================================
+        
+        async function initializeAzureSpeechAvatar() {
+            try {
+                log('Initializing Azure Speech Avatar', 'AVATAR');
+                
+                // Verificar SDK
+                if (typeof window.SpeechSDK === 'undefined') {
+                    throw new Error('Azure Speech SDK not loaded');
+                }
+                
+                const sdkVersion = window.SpeechSDK.SDKVersion || 'Unknown';
+                log(`Using Azure Speech SDK version: ${sdkVersion}`, 'INFO');
+                
+                updateAvatarStatus('Initializing...');
+                
+                // Obtener relay token
+                const relayUrl = `https://${AZURE_SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/avatar/relay/token/v1`;
+                log(`Fetching relay token from: ${relayUrl}`, 'NETWORK');
+                
+                const relayResp = await fetch(relayUrl, {
+                    method: 'GET',
+                    headers: { 
+                        'Ocp-Apim-Subscription-Key': AZURE_SPEECH_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!relayResp.ok) {
+                    const errorText = await relayResp.text();
+                    throw new Error(`Relay token error ${relayResp.status}: ${errorText}`);
+                }
+
+                const relay = await relayResp.json();
+                
+                // Formatear ICE servers correctamente
+                const iceServers = [
+                    {
+                        urls: relay.Urls || relay.urls,
+                        username: relay.Username || relay.username, 
+                        credential: relay.Password || relay.password || relay.credential
+                    },
+                    {
+                        urls: 'stun:stun.l.google.com:19302'
+                    }
+                ];
+                
+                log('ICE servers obtained', 'SUCCESS', { 
+                    servers: iceServers.length,
+                    urls: iceServers.map(s => s.urls)
+                });
+
+                // Configure PeerConnection
+                const pcConfig = {
+                    iceServers: iceServers,
+                    iceTransportPolicy: 'all',
+                    bundlePolicy: 'max-bundle',
+                    rtcpMuxPolicy: 'require',
+                    sdpSemantics: 'unified-plan'
+                };
+                
+                const pc = new RTCPeerConnection(pcConfig);
+                
+                // Add transceivers
+                pc.addTransceiver('audio', { direction: 'recvonly' });
+                pc.addTransceiver('video', { direction: 'recvonly' });
+
+                // Variables para controlar los tracks
+                let videoTrackReceived = false;
+                let audioTrackReceived = false;
+                let currentStream = null;
+
+                // Handle incoming tracks
+                pc.ontrack = (ev) => {
+                    console.log('Track received:', {
+                        kind: ev.track.kind,
+                        id: ev.track.id,
+                        enabled: ev.track.enabled,
+                        readyState: ev.track.readyState,
+                        hasStreams: ev.streams?.length > 0
+                    });
+                    
+                    if (ev.track.kind === 'video') {
+                        videoTrackReceived = true;
+                    } else if (ev.track.kind === 'audio') {
+                        audioTrackReceived = true;
+                    }
+                    
+                    if (ev.streams && ev.streams[0]) {
+                        currentStream = ev.streams[0];
+                        
+                        if (videoTrackReceived || audioTrackReceived) {
+                            const videoEl = document.getElementById('avatarVideo');
+                            const videoContainer = document.getElementById('avatarVideoContainer');
+                            const avatarContainer = document.getElementById('avatarContainer');
+
+                            if (videoEl) {
+                                // Asignar stream
+                                videoEl.srcObject = currentStream;
+                                
+                                // Verificar y agregar audio si falta
+                                setTimeout(() => {
+                                    const videoTracks = currentStream.getVideoTracks();
+                                    const audioTracks = currentStream.getAudioTracks();
+                                    
+                                    console.log('Stream status:', {
+                                        video: videoTracks.length,
+                                        audio: audioTracks.length
+                                    });
+                                    
+                                    // Si falta el audio, intentar obtenerlo del PeerConnection
+                                    if (audioTracks.length === 0 && pc.getReceivers) {
+                                        const receivers = pc.getReceivers();
+                                        receivers.forEach(receiver => {
+                                            if (receiver.track && receiver.track.kind === 'audio') {
+                                                console.log('Adding missing audio track');
+                                                currentStream.addTrack(receiver.track);
+                                            }
+                                        });
+                                    }
+                                    
+                                    // Configurar el video
+                                    videoEl.muted = false;
+                                    videoEl.volume = 1.0;
+                                    videoEl.controls = false;
+                                    
+                                    // Mostrar video
+                                    if (videoContainer) {
+                                        videoContainer.style.display = 'block';
+                                    }
+                                    if (avatarContainer) {
+                                        avatarContainer.style.display = 'none';
+                                    }
+                                    
+                                    // Reproducir
+                                    videoEl.play().then(() => {
+                                        log('Avatar video playing', 'SUCCESS');
+                                        updateAvatarStatus('Active');
+                                    }).catch(err => {
+                                        log(`Video play error: ${err}`, 'ERROR');
+                                        console.log('Click on the video to play manually');
+                                    });
+                                }, 1000);
+                            }
+                        }
+                    }
+                };
+
+                pc.onconnectionstatechange = () => {
+                    log(`PeerConnection state: ${pc.connectionState}`, 'NETWORK');
+                    if (pc.connectionState === 'connected') {
+                        updateAvatarStatus('Connected');
+                    } else if (pc.connectionState === 'failed') {
+                        updateAvatarStatus('Failed');
+                        setTimeout(() => initializeAzureSpeechAvatar(), 3000);
+                    }
+                };
+
+                pc.oniceconnectionstatechange = () => {
+                    log(`ICE connection state: ${pc.iceConnectionState}`, 'NETWORK');
+                };
+
+                // Create Speech Config
+                const speechConfig = window.SpeechSDK.SpeechConfig.fromSubscription(
+                    AZURE_SPEECH_KEY, 
+                    AZURE_SPEECH_REGION
+                );
+                
+                speechConfig.speechSynthesisVoiceName = "es-AR-ElenaNeural";
+                speechConfig.speechSynthesisLanguage = "es-AR";
+                
+                // Create video format
+                const videoFormat = new window.SpeechSDK.AvatarVideoFormat();
+                videoFormat.width = 1920;
+                videoFormat.height = 1080;
+                videoFormat.bitrate = 2000000;
+                videoFormat.frameRate = 25;
+                
+                // Create avatar config
+                const avatarConfig = new window.SpeechSDK.AvatarConfig(
+                    AZURE_AVATAR_CHARACTER,
+                    AZURE_AVATAR_STYLE,
+                    videoFormat
+                );
+                
+                if (avatarConfig.backgroundColor !== undefined) {
+                    avatarConfig.backgroundColor = '#FFFFFFFF';
+                }
+                
+                log('Creating Avatar Synthesizer', 'AVATAR', {
+                    character: AZURE_AVATAR_CHARACTER,
+                    style: AZURE_AVATAR_STYLE,
+                    voice: "es-AR-TomasNeural",
+                    bitrate: videoFormat.bitrate,
+                    resolution: `${videoFormat.width}x${videoFormat.height}`
+                });
+
+                // Create synthesizer
+                azureSpeechAvatarSynthesizer = new window.SpeechSDK.AvatarSynthesizer(speechConfig, avatarConfig);
+                
+                // Setup event handlers
+                azureSpeechAvatarSynthesizer.avatarEventReceived = (s, e) => {
+                    log(`Avatar event: ${e.description}`, 'AVATAR');
+                };
+                
+                // Start avatar
+                log('Starting avatar with PeerConnection', 'AVATAR');
+                
+                azureSpeechAvatarConnection = await azureSpeechAvatarSynthesizer.startAvatarAsync(pc);
+                
+                if (azureSpeechAvatarConnection) {
+                    azureSpeechAvatarConnected = true;
+                    log('Azure Speech Avatar connected successfully', 'SUCCESS');
+                    
+                    // Store references for debugging
+                    window.__avatarSynth = azureSpeechAvatarSynthesizer;
+                    window.__avatarPC = pc;
+                    window.__avatarConnection = azureSpeechAvatarConnection;
+                    
+                    // Initial speech
+                    setTimeout(() => {
+                        if (azureSpeechAvatarSynthesizer && azureSpeechAvatarConnected) {
+                            azureSpeechAvatarSynthesizer.speakTextAsync(
+                                "Avatar iniciado correctamente. Listo para conversar.",
+                                (result) => {
+                                    log('Initial avatar speech completed', 'SUCCESS');
+                                },
+                                (error) => {
+                                    log(`Initial avatar speech error: ${error}`, 'ERROR');
+                                }
+                            );
+                        }
+                    }, 2000);
+                }
+                
+            } catch (error) {
+                log(`Azure Speech Avatar initialization failed: ${error.message}`, 'ERROR');
+                console.error('Full error:', error);
+                updateAvatarStatus('Failed');
+                showError(`Avatar initialization failed: ${error.message}`);
+            }
+        }
+        
+        async function stopAzureSpeechAvatar() {
+            try {
+                if (azureSpeechAvatarSynthesizer && azureSpeechAvatarConnected) {
+                    log('Stopping Azure Speech Avatar', 'AVATAR');
+                    
+                    await azureSpeechAvatarSynthesizer.stopAvatarAsync();
+                    
+                    if (window.__avatarPC) {
+                        window.__avatarPC.close();
+                        window.__avatarPC = null;
+                    }
+                    
+                    azureSpeechAvatarConnected = false;
+                    azureSpeechAvatarSynthesizer = null;
+                    azureSpeechAvatarConnection = null;
+                    
+                    const videoContainer = document.getElementById('avatarVideoContainer');
+                    const avatarContainer = document.getElementById('avatarContainer');
+                    const videoEl = document.getElementById('avatarVideo');
+                    
+                    if (videoContainer) {
+                        videoContainer.style.display = 'none';
+                    }
+                    if (avatarContainer) {
+                        avatarContainer.style.display = 'flex';
+                    }
+                    if (videoEl) {
+                        videoEl.srcObject = null;
+                    }
+                    
+                    updateAvatarStatus('Stopped');
+                    log('Azure Speech Avatar stopped', 'SUCCESS');
+                }
+            } catch (error) {
+                log(`Error stopping Azure Speech Avatar: ${error.message}`, 'ERROR');
+            }
+        }
+        
+        async function makeAvatarSpeak(text) {
+            if (!azureSpeechAvatarSynthesizer || !azureSpeechAvatarConnected) {
+                log('Avatar not connected, cannot speak', 'WARNING');
+                return;
+            }
+            
+            try {
+                log(`Making avatar speak: "${text.substring(0, 50)}..."`, 'AVATAR');
+                
+                // Detener cualquier speech anterior
+                azureSpeechAvatarSynthesizer.stopSpeakingAsync();
+                
+                azureSpeechAvatarSynthesizer.speakTextAsync(
+                    text,
+                    (result) => {
+                        log('Avatar speech completed', 'SUCCESS');
+                        // Asegurar que el audio no esté muteado
+                        const video = document.getElementById('avatarVideo');
+                        if (video) {
+                            video.muted = false;
+                            video.volume = 1.0;
+                            
+                            // Si está pausado, reproducir
+                            if (video.paused) {
+                                video.play().catch(e => console.log('Autoplay blocked:', e));
+                            }
+                        }
+                    },
+                    (error) => {
+                        log(`Avatar speech error: ${error}`, 'ERROR');
+                    }
+                );
+            } catch (error) {
+                log(`Error making avatar speak: ${error.message}`, 'ERROR');
+            }
+        }
+        
+        // Test function for avatar only
+        async function testAvatarOnly() {
+            try {
+                log('Testing avatar independently', 'INFO');
+                
+                if (!window.sdkReady) {
+                    alert('SDK not ready. Please wait for initialization.');
+                    return;
+                }
+                
+                if (!azureSpeechAvatarConnected) {
+                    await initializeAzureSpeechAvatar();
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+                
+                if (azureSpeechAvatarConnected) {
+                    makeAvatarSpeak("Esta es una prueba del sistema de avatar. Si puedes verme y escucharme, el avatar está funcionando correctamente.");
+                } else {
+                    alert('Avatar not connected. Check the console for errors.');
+                }
+                
+            } catch (error) {
+                log(`Avatar test failed: ${error.message}`, 'ERROR');
+                alert(`Avatar test failed: ${error.message}`);
+            }
+        }
         
         // ================================
         // SDK INITIALIZATION AND VERIFICATION
@@ -970,364 +1387,6 @@
         }
         
         // ================================
-        // AZURE SPEECH AVATAR FUNCTIONS
-        // ================================
-        
-        async function initializeAzureSpeechAvatar() {
-            try {
-                log('Initializing Azure Speech Avatar', 'AVATAR');
-                
-                // Verify SDK is available
-                if (typeof window.SpeechSDK === 'undefined') {
-                    throw new Error('Azure Speech SDK not loaded');
-                }
-                
-                const sdkVersion = window.SpeechSDK.SDKVersion || 'Unknown';
-                log(`Using Azure Speech SDK version: ${sdkVersion}`, 'INFO');
-                
-                updateAvatarStatus('Initializing...');
-                
-                // Get relay token
-                const relayUrl = `https://${AZURE_SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/avatar/relay/token/v1`;
-                log(`Fetching relay token from: ${relayUrl}`, 'NETWORK');
-                
-                const relayResp = await fetch(relayUrl, {
-                    method: 'GET',
-                    headers: { 
-                        'Ocp-Apim-Subscription-Key': AZURE_SPEECH_KEY,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!relayResp.ok) {
-                    const errorText = await relayResp.text();
-                    throw new Error(`Relay token error ${relayResp.status}: ${errorText}`);
-                }
-
-                const relay = await relayResp.json();
-                log('ICE servers obtained', 'SUCCESS', { 
-                    servers: relay.iceServers?.length,
-                    urls: relay.iceServers?.map(s => s.urls).flat()
-                });
-
-                // Configure PeerConnection
-                const pcConfig = {
-                    iceServers: relay.iceServers || [],
-                    iceTransportPolicy: 'all',
-                    bundlePolicy: 'max-bundle',
-                    rtcpMuxPolicy: 'require',
-                    sdpSemantics: 'unified-plan'
-                };
-                
-                const pc = new RTCPeerConnection(pcConfig);
-                
-                // Add transceivers
-                pc.addTransceiver('video', { 
-                    direction: 'recvonly',
-                    streams: []
-                });
-                pc.addTransceiver('audio', { 
-                    direction: 'recvonly',
-                    streams: []
-                });
-
-                // Handle incoming tracks
-                pc.ontrack = (ev) => {
-                    console.log('Track received:', {
-                        kind: ev.track.kind,
-                        id: ev.track.id,
-                        enabled: ev.track.enabled,
-                        readyState: ev.track.readyState,
-                        hasStreams: ev.streams?.length > 0
-                    });
-                    
-                    if (ev.track.kind === 'video' && ev.streams && ev.streams[0]) {
-                        const videoEl = document.getElementById('avatarVideo');
-                        const videoContainer = document.getElementById('avatarVideoContainer');
-                        const avatarContainer = document.getElementById('avatarContainer');
-
-                        if (videoEl && ev.streams[0]) {
-                            videoEl.srcObject = ev.streams[0];
-                            
-                            if (videoContainer) {
-                                videoContainer.style.display = 'block';
-                            }
-                            if (avatarContainer) {
-                                avatarContainer.style.display = 'none';
-                            }
-                            
-                            videoEl.play().then(() => {
-                                log('Avatar video playing', 'SUCCESS');
-                                updateAvatarStatus('Active');
-                            }).catch(err => {
-                                log(`Video play error: ${err}`, 'ERROR');
-                                videoEl.controls = true;
-                            });
-                        }
-                    }
-                };
-
-                pc.onconnectionstatechange = () => {
-                    log(`PeerConnection state: ${pc.connectionState}`, 'NETWORK');
-                    if (pc.connectionState === 'connected') {
-                        updateAvatarStatus('Connected');
-                    } else if (pc.connectionState === 'failed') {
-                        updateAvatarStatus('Failed');
-                        setTimeout(() => initializeAzureSpeechAvatar(), 3000);
-                    }
-                };
-
-                pc.oniceconnectionstatechange = () => {
-                    log(`ICE connection state: ${pc.iceConnectionState}`, 'NETWORK');
-                };
-
-                // Create Speech Config
-                const speechConfig = window.SpeechSDK.SpeechConfig.fromSubscription(
-                    AZURE_SPEECH_KEY, 
-                    AZURE_SPEECH_REGION
-                );
-                
-                speechConfig.speechSynthesisVoiceName = "es-AR-TomasNeural";
-                speechConfig.speechSynthesisLanguage = "es-AR";
-                
-                // Create video format
-                const videoFormat = new window.SpeechSDK.AvatarVideoFormat();
-                videoFormat.width = 1920;
-                videoFormat.height = 1080;
-                videoFormat.bitrate = 2000000;
-                videoFormat.frameRate = 25;
-                
-                // Create avatar config
-                const avatarConfig = new window.SpeechSDK.AvatarConfig(
-                    AZURE_AVATAR_CHARACTER,
-                    AZURE_AVATAR_STYLE,
-                    videoFormat
-                );
-                
-                if (avatarConfig.backgroundColor !== undefined) {
-                    avatarConfig.backgroundColor = '#FFFFFFFF';
-                }
-                
-                log('Creating Avatar Synthesizer', 'AVATAR', {
-                    character: AZURE_AVATAR_CHARACTER,
-                    style: AZURE_AVATAR_STYLE,
-                    voice: "es-AR-TomasNeural",
-                    bitrate: videoFormat.bitrate,
-                    resolution: `${videoFormat.width}x${videoFormat.height}`
-                });
-
-                // Create synthesizer
-                azureSpeechAvatarSynthesizer = new window.SpeechSDK.AvatarSynthesizer(speechConfig, avatarConfig);
-                
-                // Setup event handlers
-                azureSpeechAvatarSynthesizer.avatarEventReceived = (s, e) => {
-                    log(`Avatar event: ${e.description}`, 'AVATAR');
-                };
-                
-                // Start avatar
-                log('Starting avatar with PeerConnection', 'AVATAR');
-                
-                azureSpeechAvatarConnection = await azureSpeechAvatarSynthesizer.startAvatarAsync(pc);
-                
-                if (azureSpeechAvatarConnection) {
-                    azureSpeechAvatarConnected = true;
-                    log('Azure Speech Avatar connected successfully', 'SUCCESS');
-                    
-                    // Initial speech
-                    setTimeout(() => {
-                        if (azureSpeechAvatarSynthesizer && azureSpeechAvatarConnected) {
-                            azureSpeechAvatarSynthesizer.speakTextAsync(
-                                "Sistema de avatar iniciado correctamente. Listo para interactuar.",
-                                (result) => {
-                                    log('Initial avatar speech completed', 'SUCCESS');
-                                },
-                                (error) => {
-                                    log(`Initial avatar speech error: ${error}`, 'ERROR');
-                                }
-                            );
-                        }
-                    }, 2000);
-                }
-                
-                // Store references for debugging
-                window.__avatarSynth = azureSpeechAvatarSynthesizer;
-                window.__avatarPC = pc;
-                window.__avatarConnection = azureSpeechAvatarConnection;
-                
-            } catch (error) {
-                log(`Azure Speech Avatar initialization failed: ${error.message}`, 'ERROR');
-                console.error('Full error:', error);
-                updateAvatarStatus('Failed');
-                showError(`Avatar initialization failed: ${error.message}`);
-            }
-        }
-        
-        async function stopAzureSpeechAvatar() {
-            try {
-                if (azureSpeechAvatarSynthesizer && azureSpeechAvatarConnected) {
-                    log('Stopping Azure Speech Avatar', 'AVATAR');
-                    
-                    await azureSpeechAvatarSynthesizer.stopAvatarAsync();
-                    
-                    if (window.__avatarPC) {
-                        window.__avatarPC.close();
-                        window.__avatarPC = null;
-                    }
-                    
-                    azureSpeechAvatarConnected = false;
-                    azureSpeechAvatarSynthesizer = null;
-                    azureSpeechAvatarConnection = null;
-                    
-                    const videoContainer = document.getElementById('avatarVideoContainer');
-                    const avatarContainer = document.getElementById('avatarContainer');
-                    const videoEl = document.getElementById('avatarVideo');
-                    
-                    if (videoContainer) {
-                        videoContainer.style.display = 'none';
-                    }
-                    if (avatarContainer) {
-                        avatarContainer.style.display = 'flex';
-                    }
-                    if (videoEl) {
-                        videoEl.srcObject = null;
-                    }
-                    
-                    updateAvatarStatus('Stopped');
-                    log('Azure Speech Avatar stopped', 'SUCCESS');
-                }
-            } catch (error) {
-                log(`Error stopping Azure Speech Avatar: ${error.message}`, 'ERROR');
-            }
-        }
-        
-        async function makeAvatarSpeak(text) {
-            if (!azureSpeechAvatarSynthesizer || !azureSpeechAvatarConnected) {
-                log('Avatar not connected, cannot speak', 'WARNING');
-                return;
-            }
-            
-            try {
-                log(`Making avatar speak: "${text.substring(0, 50)}..."`, 'AVATAR');
-                
-                azureSpeechAvatarSynthesizer.speakTextAsync(
-                    text,
-                    (result) => {
-                        log('Avatar speech completed', 'SUCCESS');
-                    },
-                    (error) => {
-                        log(`Avatar speech error: ${error}`, 'ERROR');
-                    }
-                );
-            } catch (error) {
-                log(`Error making avatar speak: ${error.message}`, 'ERROR');
-            }
-        }
-        
-        // Test function for avatar only
-        async function testAvatarOnly() {
-            try {
-                log('Testing avatar independently', 'INFO');
-                
-                if (!sdkReady) {
-                    alert('SDK not ready. Please wait for initialization.');
-                    return;
-                }
-                
-                if (!azureSpeechAvatarConnected) {
-                    await initializeAzureSpeechAvatar();
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                }
-                
-                if (azureSpeechAvatarConnected) {
-                    makeAvatarSpeak("Esta es una prueba del sistema de avatar. Si puedes verme y escucharme, el avatar está funcionando correctamente.");
-                } else {
-                    alert('Avatar not connected. Check the console for errors.');
-                }
-                
-            } catch (error) {
-                log(`Avatar test failed: ${error.message}`, 'ERROR');
-                alert(`Avatar test failed: ${error.message}`);
-            }
-        }
-        
-        // ================================
-        // LOGGING AND DEBUG SYSTEM
-        // ================================
-        
-        function log(message, type = 'INFO', data = null) {
-            const timestamp = new Date().toISOString();
-            const logEntry = {
-                time: timestamp,
-                type: type.toUpperCase(),
-                message,
-                data
-            };
-            
-            debugLog.unshift(logEntry);
-            if (debugLog.length > MAX_DEBUG_ENTRIES) {
-                debugLog = debugLog.slice(0, MAX_DEBUG_ENTRIES);
-            }
-            
-            const styles = {
-                'INFO': 'color: #00FF64',
-                'WARNING': 'color: #FFC107',
-                'ERROR': 'color: #FF5252',
-                'SUCCESS': 'color: #4CAF50',
-                'NETWORK': 'color: #2196F3',
-                'AUDIO': 'color: #9C27B0',
-                'AVATAR': 'color: #FF9800',
-                'METRICS': 'color: #00BCD4'
-            };
-            
-            console.log(
-                `%c[${timestamp.split('T')[1].split('.')[0]}] [${logEntry.type}] ${message}`,
-                styles[logEntry.type] || 'color: #B0C4DE'
-            );
-            
-            if (data) {
-                console.log('Data:', data);
-            }
-            
-            updateDebugPanel();
-        }
-        
-        function updateDebugPanel() {
-            const debugElement = document.getElementById('debugLog');
-            if (!debugElement) return;
-            
-            const html = debugLog.slice(0, 100).map(entry => {
-                const timeStr = entry.time.split('T')[1].split('.')[0];
-                const typeColors = {
-                    'INFO': '#00FF64',
-                    'WARNING': '#FFC107',
-                    'ERROR': '#FF5252',
-                    'SUCCESS': '#4CAF50',
-                    'NETWORK': '#2196F3',
-                    'AUDIO': '#9C27B0',
-                    'AVATAR': '#FF9800',
-                    'METRICS': '#00BCD4'
-                };
-                const color = typeColors[entry.type] || '#B0C4DE';
-                
-                let dataHtml = '';
-                if (entry.data) {
-                    dataHtml = `<pre style="color: #999; margin-left: 20px; font-size: 10px; margin-top: 5px;">${JSON.stringify(entry.data, null, 2)}</pre>`;
-                }
-                
-                return `
-                    <div class="debug-entry">
-                        <span class="debug-time">[${timeStr}]</span>
-                        <span class="debug-type" style="color: ${color};">[${entry.type}]</span>
-                        <span class="debug-message">${entry.message}</span>
-                        ${dataHtml}
-                    </div>
-                `;
-            }).join('');
-            
-            debugElement.innerHTML = html;
-        }
-        
-        // ================================
         // INITIALIZATION AND CONFIGURATION
         // ================================
 
@@ -1398,169 +1457,10 @@
             }
         }
         
-        // [Resto del código continúa igual...]
-        // Incluye todas las funciones restantes como:
-        // - handleWebSocketOpen, handleWebSocketMessage, etc.
-        // - startAudioCapture, resampleAudio
-        // - handleRealtimeEvent y todos los handlers
-        // - updateUI, updateStatus, etc.
-        // - toggleVoiceSession, cleanupSession
-        
         // ================================
-        // UI UPDATES
+        // WEBSOCKET EVENT HANDLERS
         // ================================
         
-        function updateStatus(message) {
-            const statusElement = document.getElementById('status');
-            if (statusElement) {
-                statusElement.textContent = message;
-                statusElement.classList.remove('error');
-            }
-        }
-        
-        function updateConnectionStatus(status) {
-            const element = document.getElementById('connectionStatus');
-            if (element) {
-                element.textContent = status;
-            }
-        }
-        
-        function updateVADStatus(status) {
-            const element = document.getElementById('vadStatus');
-            if (element) {
-                element.textContent = status;
-            }
-        }
-        
-        function updateAvatarStatus(status) {
-            const element = document.getElementById('avatarStatus');
-            if (element) {
-                element.textContent = status;
-            }
-        }
-        
-        function addMessage(role, text) {
-            const conversation = document.getElementById('conversation');
-            if (!conversation) return;
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${role}`;
-            
-            let roleName = role === 'user' ? 'You' : role === 'assistant' ? 'Assistant' : 'System';
-            
-            messageDiv.innerHTML = `<strong>${roleName}:</strong> ${text}`;
-            conversation.appendChild(messageDiv);
-            conversation.scrollTop = conversation.scrollHeight;
-        }
-        
-        function showError(message) {
-            const conversation = document.getElementById('conversation');
-            if (conversation) {
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.textContent = message;
-                conversation.appendChild(errorDiv);
-                conversation.scrollTop = conversation.scrollHeight;
-            }
-            
-            const statusElement = document.getElementById('status');
-            if (statusElement) {
-                statusElement.textContent = `Error: ${message}`;
-                statusElement.classList.add('error');
-            }
-        }
-        
-        function clearConversation() {
-            const conversation = document.getElementById('conversation');
-            if (conversation) {
-                conversation.innerHTML = `
-                    <div class="message system">
-                        <strong>System:</strong>
-                        Conversation cleared. Ready for new interaction.
-                    </div>
-                `;
-            }
-        }
-        
-        function toggleDebugPanel() {
-            const panel = document.getElementById('debugPanel');
-            if (panel) {
-                panel.classList.toggle('show');
-            }
-        }
-        
-        function toggleAvatarMetrics() {
-            const panel = document.getElementById('avatarMetricsPanel');
-            if (panel) {
-                panel.classList.toggle('show');
-            }
-        }
-        
-        // ================================
-        // MAIN CONTROL FUNCTIONS
-        // ================================
-        
-        async function toggleVoiceSession() {
-            log('Toggle voice session clicked', 'INFO');
-            
-            if (!sdkReady) {
-                alert('SDK not ready. Please wait for initialization.');
-                return;
-            }
-            
-            if (!sessionActive) {
-                try {
-                    if (!config) {
-                        const initialized = await initializeSystem();
-                        if (!initialized) {
-                            showError('Failed to initialize system');
-                            return;
-                        }
-                    }
-                    
-                    await connectToRealtimeAPI();
-                    
-                } catch (error) {
-                    log(`Failed to start session: ${error.message}`, 'ERROR');
-                    showError(`Failed to start: ${error.message}`);
-                }
-            } else {
-                await cleanupSession();
-            }
-        }
-        
-        // ================================
-        // APPLICATION INITIALIZATION
-        // ================================
-        
-        window.addEventListener('load', async () => {
-            console.log('🚀 Application starting...');
-            
-            // Initialize the application
-            const initialized = await initializeApplication();
-            
-            if (initialized) {
-                log('Application ready', 'SUCCESS');
-            } else {
-                log('Application initialization failed', 'ERROR');
-            }
-        });
-        
-        window.addEventListener('beforeunload', async () => {
-            if (sessionActive) {
-                await cleanupSession();
-            }
-        });
-        
-        // Add remaining WebSocket and audio handling functions here...
-        // (handleWebSocketOpen, handleWebSocketMessage, setupSession, startAudioCapture, etc.)
-        // These remain the same as in your original code
-        
-        // ================================
-        // AGREGAR ESTAS FUNCIONES AL FINAL DEL SCRIPT (antes del cierre </script>)
-        // ================================
-
-        // WebSocket Event Handlers
         function handleWebSocketOpen() {
             log('WebSocket connection established', 'SUCCESS');
             updateStatus('Connected to Azure OpenAI Realtime');
@@ -1620,7 +1520,10 @@
             log('Session configuration sent', 'SUCCESS');
         }
 
-        // Audio Capture and Processing
+        // ================================
+        // AUDIO CAPTURE AND PROCESSING
+        // ================================
+        
         async function startAudioCapture() {
             try {
                 updateStatus('Starting audio capture...');
@@ -1710,7 +1613,10 @@
             return renderedBuffer.getChannelData(0);
         }
 
-        // Event Handling
+        // ================================
+        // REALTIME EVENT HANDLING
+        // ================================
+        
         async function handleRealtimeEvent(event) {
             const eventType = event.type;
             
@@ -1811,7 +1717,96 @@
             showError(`Error: ${error.message || 'Unknown error'}`);
         }
 
-        // UI Update Functions
+        // ================================
+        // UI UPDATE FUNCTIONS
+        // ================================
+        
+        function updateStatus(message) {
+            const statusElement = document.getElementById('status');
+            if (statusElement) {
+                statusElement.textContent = message;
+                statusElement.classList.remove('error');
+            }
+        }
+        
+        function updateConnectionStatus(status) {
+            const element = document.getElementById('connectionStatus');
+            if (element) {
+                element.textContent = status;
+            }
+        }
+        
+        function updateVADStatus(status) {
+            const element = document.getElementById('vadStatus');
+            if (element) {
+                element.textContent = status;
+            }
+        }
+        
+        function updateAvatarStatus(status) {
+            const element = document.getElementById('avatarStatus');
+            if (element) {
+                element.textContent = status;
+            }
+        }
+        
+        function addMessage(role, text) {
+            const conversation = document.getElementById('conversation');
+            if (!conversation) return;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            let roleName = role === 'user' ? 'You' : role === 'assistant' ? 'Assistant' : 'System';
+            
+            messageDiv.innerHTML = `<strong>${roleName}:</strong> ${text}`;
+            conversation.appendChild(messageDiv);
+            conversation.scrollTop = conversation.scrollHeight;
+        }
+        
+        function showError(message) {
+            const conversation = document.getElementById('conversation');
+            if (conversation) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = message;
+                conversation.appendChild(errorDiv);
+                conversation.scrollTop = conversation.scrollHeight;
+            }
+            
+            const statusElement = document.getElementById('status');
+            if (statusElement) {
+                statusElement.textContent = `Error: ${message}`;
+                statusElement.classList.add('error');
+            }
+        }
+        
+        function clearConversation() {
+            const conversation = document.getElementById('conversation');
+            if (conversation) {
+                conversation.innerHTML = `
+                    <div class="message system">
+                        <strong>System:</strong>
+                        Conversation cleared. Ready for new interaction.
+                    </div>
+                `;
+            }
+        }
+        
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debugPanel');
+            if (panel) {
+                panel.classList.toggle('show');
+            }
+        }
+        
+        function toggleAvatarMetrics() {
+            const panel = document.getElementById('avatarMetricsPanel');
+            if (panel) {
+                panel.classList.toggle('show');
+            }
+        }
+        
         function updateUI(state) {
             const avatarContainer = document.getElementById('avatarContainer');
             const avatarPlaceholder = document.getElementById('avatarPlaceholder');
@@ -1867,7 +1862,10 @@
             }
         }
 
-        // Session Timer
+        // ================================
+        // SESSION TIMER
+        // ================================
+        
         function startSessionTimer() {
             sessionStartTime = Date.now();
             
@@ -1889,7 +1887,43 @@
             }, 1000);
         }
 
-        // Session Cleanup
+        // ================================
+        // MAIN CONTROL FUNCTIONS
+        // ================================
+        
+        async function toggleVoiceSession() {
+            log('Toggle voice session clicked', 'INFO');
+            
+            if (!window.sdkReady) {
+                alert('SDK not ready. Please wait for initialization.');
+                return;
+            }
+            
+            if (!sessionActive) {
+                try {
+                    if (!config) {
+                        const initialized = await initializeSystem();
+                        if (!initialized) {
+                            showError('Failed to initialize system');
+                            return;
+                        }
+                    }
+                    
+                    await connectToRealtimeAPI();
+                    
+                } catch (error) {
+                    log(`Failed to start session: ${error.message}`, 'ERROR');
+                    showError(`Failed to start: ${error.message}`);
+                }
+            } else {
+                await cleanupSession();
+            }
+        }
+        
+        // ================================
+        // SESSION CLEANUP
+        // ================================
+        
         async function cleanupSession() {
             log('Cleaning up session', 'INFO');
             
@@ -1942,6 +1976,24 @@
             log('Session cleanup completed', 'SUCCESS');
         }
         
+        // ================================
+        // APPLICATION INITIALIZATION
+        // ================================
+
+        // Initialize application when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApplication);
+        } else {
+            // DOM is already loaded
+            setTimeout(initializeApplication, 100);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', async () => {
+            if (sessionActive) {
+                await cleanupSession();
+            }
+        });
     </script>
 </body>
 </html>
