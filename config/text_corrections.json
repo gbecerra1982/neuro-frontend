@@ -1,0 +1,22 @@
+{
+  "original": [
+    "Rial",
+    "Ta",
+    "Taim",
+    "aim",
+    "ipf",
+    "IPF",
+    "bpe",
+    "BPE"
+  ],
+  "replacement": [
+    "Real",
+    "Ti",
+    "Time",
+    "ime",
+    "YPF",
+    "YPF",
+    "VPE",
+    "VPE"
+  ]
+}

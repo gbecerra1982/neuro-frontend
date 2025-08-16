@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Azure OpenAI Realtime API with Avatar Support - Production</title>
     
-    <!-- SDK de Azure Speech - CDN de jsdelivr -->
-    <script nonce="{{ csp_nonce }}" crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
-    
-    <!-- Socket.IO Client Library -->
-    <script nonce="{{ csp_nonce }}" src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <!-- SDK de Azure Speech - CDN principal de Microsoft -->
+    <script crossorigin="anonymous" src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
     
     <!-- Script de verificación y carga con fallback mejorado -->
-    <script nonce="{{ csp_nonce }}">
+    <script>
         // Sistema de carga robusto del SDK
         window.sdkReady = false;
         
@@ -44,73 +41,55 @@
             });
         }
         
-        // Función de carga con fallback mejorada
+        // Función de carga con fallback
         async function loadSDKWithFallback() {
-            // Primero intentar con el SDK ya cargado
             try {
                 await waitForSDK();
                 return true;
             } catch (error) {
                 console.error('Initial SDK load failed:', error);
-            }
-            
-            // Intentar con URLs alternativas
-            const sdkUrls = [
-                'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.34.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js',
-                '/static/speech-sdk.min.js'  // Fallback local
-            ];
-            
-            for (const url of sdkUrls) {
-                try {
-                    console.log(`🔄 Attempting to load SDK from: ${url}`);
-                    
-                    // Remover script anterior si existe
-                    const existingScript = document.querySelector('script[src*="speech-sdk"]');
-                    if (existingScript) {
-                        existingScript.remove();
-                    }
-                    
-                    // Crear nuevo script
-                    await new Promise((resolve, reject) => {
-                        const script = document.createElement('script');
-                        script.src = url;
-                        script.crossOrigin = 'anonymous';
-                        
-                        script.onload = () => {
-                            // Verificar que el SDK esté realmente cargado
-                            setTimeout(() => {
-                                if (typeof window.SpeechSDK !== 'undefined') {
-                                    console.log('✅ SDK loaded successfully from:', url);
-                                    window.sdkReady = true;
-                                    resolve(true);
-                                } else {
-                                    reject(new Error('SDK object not available'));
-                                }
-                            }, 500);
-                        };
-                        
-                        script.onerror = () => {
-                            reject(new Error(`Failed to load from ${url}`));
-                        };
-                        
-                        document.head.appendChild(script);
-                    });
-                    
-                    return true;
-                } catch (error) {
-                    console.warn(`Failed to load SDK from ${url}:`, error);
-                    continue;
+                console.log('🔄 Attempting fallback SDK load...');
+                
+                const failedScript = document.querySelector('script[src*="aka.ms"]');
+                if (failedScript) {
+                    failedScript.remove();
                 }
+                
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js';
+                    script.crossOrigin = 'anonymous';
+                    
+                    script.onload = async () => {
+                        try {
+                            await new Promise(r => setTimeout(r, 2000));
+                            
+                            if (typeof window.SpeechSDK !== 'undefined') {
+                                console.log('✅ SDK loaded from fallback CDN');
+                                window.sdkReady = true;
+                                resolve(true);
+                            } else {
+                                reject(new Error('SDK not available after fallback load'));
+                            }
+                        } catch (e) {
+                            reject(e);
+                        }
+                    };
+                    
+                    script.onerror = () => {
+                        reject(new Error('Failed to load SDK from fallback CDN'));
+                    };
+                    
+                    document.head.appendChild(script);
+                });
             }
-            
-            throw new Error('Failed to load SDK from all sources');
         }
         
         // Iniciar carga del SDK inmediatamente
         window.sdkLoadPromise = loadSDKWithFallback();
     </script>
     
-    <style nonce="{{ csp_nonce }}">
+    <style>
         * {
             margin: 0;
             padding: 0;
@@ -163,30 +142,6 @@
             font-weight: 600;
             font-size: 18px;
             margin-bottom: 10px;
-        }
-
-        .proxy-indicator {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #00FF64;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 11px;
-            font-family: 'Courier New', monospace;
-            border: 1px solid rgba(0, 255, 100, 0.3);
-            z-index: 999;
-        }
-
-        .proxy-indicator.connected {
-            color: #00FF64;
-            border-color: rgba(0, 255, 100, 0.5);
-        }
-
-        .proxy-indicator.disconnected {
-            color: #FF3B30;
-            border-color: rgba(255, 59, 48, 0.5);
         }
 
         .system-status {
@@ -655,18 +610,6 @@
             margin: 0 auto 20px;
         }
 
-        .loading-text {
-            color: #00FF64;
-            text-align: center;
-        }
-
-        .control-button-text-container {
-            color: #B0C4DE;
-            font-size: 14px;
-            max-width: 220px;
-            text-align: center;
-        }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -738,16 +681,11 @@
 </head>
 <body>
     <input type="hidden" id="clientId" value="{{ client_id }}">
-    
-    <!-- Proxy Status Indicator -->
-    <div class="proxy-indicator disconnected" id="proxyIndicator">
-        Proxy: <span id="proxyStatus">Disconnected</span>
-    </div>
 
     <!-- Loading Indicator -->
     <div class="loading-indicator" id="loadingIndicator">
         <div class="loading-spinner"></div>
-        <div class="loading-text">Initializing Azure Speech SDK...</div>
+        <div style="color: #00FF64; text-align: center;">Initializing Azure Speech SDK...</div>
     </div>
 
     <div class="container">
@@ -814,17 +752,17 @@
             </div>
 
             <div class="control-section">
-                <button class="control-button" id="controlButton" disabled>
+                <button class="control-button" id="controlButton" onclick="toggleVoiceSession()" disabled>
                     <span id="controlButtonIcon">🎤</span>
                 </button>
-                <div class="control-button-text-container">
+                <div style="color: #B0C4DE; font-size: 14px; max-width: 220px; text-align: center;">
                     <span id="controlButtonText">Initializing SDK...</span>
                 </div>
                 <div class="controls-group">
-                    <button class="secondary-button" id="debugPanelBtn">Debug Console</button>
-                    <button class="secondary-button" id="avatarMetricsBtn">Avatar Metrics</button>
-                    <button class="secondary-button" id="clearConversationBtn">Clear Chat</button>
-                    <button class="secondary-button" id="testAvatarBtn">Test Avatar</button>
+                    <button class="secondary-button" onclick="toggleDebugPanel()">Debug Console</button>
+                    <button class="secondary-button" onclick="toggleAvatarMetrics()">Avatar Metrics</button>
+                    <button class="secondary-button" onclick="clearConversation()">Clear Chat</button>
+                    <button class="secondary-button" onclick="testAvatarOnly()">Test Avatar</button>
                 </div>
             </div>
         </div>
@@ -875,16 +813,13 @@
         </div>
     </div>
 
-    <script nonce="{{ csp_nonce }}">
+    <script>
         // ================================
         // GLOBAL CONFIGURATION AND STATE
         // ================================
         
-        // Socket.IO and proxy state
-        let socket = null;
-        let realtimeConnected = false;
-        
         // WebSocket and connection state
+        let webSocket = null;
         let sessionActive = false;
         let reconnectAttempts = 0;
         let sessionStartTime = null;
@@ -966,8 +901,7 @@
                 'NETWORK': 'color: #2196F3',
                 'AUDIO': 'color: #9C27B0',
                 'AVATAR': 'color: #FF9800',
-                'METRICS': 'color: #00BCD4',
-                'PROXY': 'color: #E91E63'
+                'METRICS': 'color: #00BCD4'
             };
             
             console.log(
@@ -996,8 +930,7 @@
                     'NETWORK': '#2196F3',
                     'AUDIO': '#9C27B0',
                     'AVATAR': '#FF9800',
-                    'METRICS': '#00BCD4',
-                    'PROXY': '#E91E63'
+                    'METRICS': '#00BCD4'
                 };
                 const color = typeColors[entry.type] || '#B0C4DE';
                 
@@ -1485,80 +1418,38 @@
         async function connectToRealtimeAPI() {
             try {
                 updateStatus('Connecting to Azure OpenAI Realtime...');
-                log('Establishing connection via Socket.IO proxy', 'PROXY');
+                log('Establishing WebSocket connection', 'NETWORK');
                 
-                const clientId = document.getElementById('clientId').value;
+                const deploymentName = config.deploymentName || config.deployment || config.model || 'gpt-4o-realtime-preview';
+                const apiVersion = config.apiVersion || '2025-04-01-preview';
                 
-                // Initialize Socket.IO connection
-                socket = io({
-                    transports: ['websocket', 'polling'],
-                    query: { client_id: clientId }
+                const wsBase = (config.endpoint || '')
+                    .replace(/^http(s)?:\/\//, 'wss://')
+                    .replace(/\/$/, '');
+                
+                const params = new URLSearchParams({
+                    'api-version': apiVersion,
+                    'deployment': deploymentName
                 });
                 
-                // Socket.IO connection events
-                socket.on('connect', () => {
-                    log('Socket.IO connected, establishing Realtime proxy', 'PROXY');
-                    updateProxyStatus('Socket.IO Connected', true);
-                    
-                    // Request Realtime API connection through proxy
-                    socket.emit('realtime_connect', {
-                        client_id: clientId
-                    });
+                if (config.apiKey) {
+                    params.set('api-key', config.apiKey);
+                }
+                
+                const wsUrl = `${wsBase}/openai/realtime?${params.toString()}`;
+                
+                log('WebSocket URL constructed', 'NETWORK', {
+                    endpoint: `${wsBase}/openai/realtime`,
+                    deployment: deploymentName,
+                    apiVersion
                 });
                 
-                socket.on('disconnect', () => {
-                    log('Socket.IO disconnected', 'PROXY');
-                    updateProxyStatus('Disconnected', false);
-                    realtimeConnected = false;
-                    sessionActive = false;
-                    updateUI('idle');
-                });
+                webSocket = new WebSocket(wsUrl);
                 
-                // Realtime API proxy events
-                socket.on('realtime_connected', (data) => {
-                    log('Connected to Azure OpenAI Realtime via proxy', 'SUCCESS', data);
-                    realtimeConnected = true;
-                    updateStatus('Connected to Azure OpenAI Realtime');
-                    updateConnectionStatus('Connected');
-                    updateProxyStatus('Realtime Connected', true);
-                    reconnectAttempts = 0;
-                    setupSession();
-                });
-                
-                socket.on('realtime_message', (data) => {
-                    try {
-                        const message = JSON.parse(data.data);
-                        handleRealtimeEvent(message);
-                    } catch (error) {
-                        log(`Message parsing error: ${error.message}`, 'ERROR');
-                    }
-                });
-                
-                socket.on('realtime_error', (data) => {
-                    log('Realtime proxy error', 'ERROR', data);
-                    updateStatus('Connection error');
-                    updateConnectionStatus('Error');
-                    showError(`Proxy error: ${data.error}`);
-                });
-                
-                socket.on('realtime_closed', (data) => {
-                    log('Realtime connection closed via proxy', 'WARNING', data);
-                    realtimeConnected = false;
-                    updateStatus('Disconnected');
-                    updateConnectionStatus('Disconnected');
-                    updateProxyStatus('Realtime Disconnected', false);
-                    sessionActive = false;
-                    updateUI('idle');
-                });
-                
-                socket.on('status', (data) => {
-                    log('Server status update', 'INFO', data);
-                });
-                
-                socket.on('error', (error) => {
-                    log('Socket.IO error', 'ERROR', error);
-                    showError(`Socket error: ${error.message || error}`);
-                });
+                webSocket.onopen = handleWebSocketOpen;
+                webSocket.onmessage = handleWebSocketMessage;
+                webSocket.onerror = handleWebSocketError;
+                webSocket.onclose = handleWebSocketClose;
                 
             } catch (error) {
                 log(`Connection failed: ${error.message}`, 'ERROR');
@@ -1566,74 +1457,8 @@
             }
         }
         
-        function updateProxyStatus(status, connected) {
-            const indicator = document.getElementById('proxyIndicator');
-            const statusText = document.getElementById('proxyStatus');
-            
-            if (statusText) {
-                statusText.textContent = status;
-            }
-            
-            if (indicator) {
-                if (connected) {
-                    indicator.classList.remove('disconnected');
-                    indicator.classList.add('connected');
-                } else {
-                    indicator.classList.remove('connected');
-                    indicator.classList.add('disconnected');
-                }
-            }
-        }
-        
-        function setupSession() {
-            if (!socket || !realtimeConnected) {
-                log('Cannot setup session - not connected', 'WARNING');
-                return;
-            }
-            
-            log('Configuring session via proxy', 'INFO');
-            
-            const sessionConfig = {
-                type: "session.update",
-                session: {
-                    instructions: "You are a helpful AI assistant. Respond in Spanish (Argentina).",
-                    voice: "alloy",
-                    turn_detection: {
-                        type: "server_vad",
-                        threshold: 0.5,
-                        prefix_padding_ms: 300,
-                        silence_duration_ms: 500
-                    },
-                    input_audio_format: "pcm16",
-                    output_audio_format: "pcm16",
-                    input_audio_transcription: {
-                        model: "whisper-1"
-                    },
-                    modalities: ["text", "audio"],
-                    temperature: 0.7
-                }
-            };
-            
-            sendToRealtime(sessionConfig);
-            log('Session configuration sent via proxy', 'SUCCESS');
-        }
-        
-        function sendToRealtime(message) {
-            if (!socket || !realtimeConnected) {
-                log('Cannot send message - not connected to Realtime', 'WARNING');
-                return false;
-            }
-            
-            socket.emit('realtime_send', {
-                client_id: document.getElementById('clientId').value,
-                message: message
-            });
-            
-            return true;
-        }
-
         // ================================
-        // WEBSOCKET EVENT HANDLERS (for proxy messages)
+        // WEBSOCKET EVENT HANDLERS
         // ================================
         
         function handleWebSocketOpen() {
@@ -1667,6 +1492,34 @@
             updateUI('idle');
         }
 
+        function setupSession() {
+            log('Configuring session', 'INFO');
+            
+            const sessionConfig = {
+                type: "session.update",
+                session: {
+                    instructions: "You are a helpful AI assistant. Respond in Spanish (Argentina).",
+                    voice: "alloy",
+                    turn_detection: {
+                        type: "server_vad",
+                        threshold: 0.5,
+                        prefix_padding_ms: 300,
+                        silence_duration_ms: 500
+                    },
+                    input_audio_format: "pcm16",
+                    output_audio_format: "pcm16",
+                    input_audio_transcription: {
+                        model: "whisper-1"
+                    },
+                    modalities: ["text", "audio"],
+                    temperature: 0.7
+                }
+            };
+            
+            webSocket.send(JSON.stringify(sessionConfig));
+            log('Session configuration sent', 'SUCCESS');
+        }
+
         // ================================
         // AUDIO CAPTURE AND PROCESSING
         // ================================
@@ -1698,7 +1551,7 @@
                 audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
                 
                 audioProcessor.onaudioprocess = async (event) => {
-                    if (!socket || !realtimeConnected) return;
+                    if (!webSocket || webSocket.readyState !== WebSocket.OPEN) return;
                     
                     const inputData = event.inputBuffer.getChannelData(0);
                     const fromSampleRate = audioContext.sampleRate;
@@ -1717,11 +1570,11 @@
                         // Encode to base64
                         const audioData = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
                         
-                        // Send to server via proxy
-                        sendToRealtime({
+                        // Send to server
+                        webSocket.send(JSON.stringify({
                             type: "input_audio_buffer.append",
                             audio: audioData
-                        });
+                        }));
                         
                     } catch (error) {
                         log(`Audio processing error: ${error.message}`, 'ERROR');
@@ -2075,7 +1928,6 @@
             log('Cleaning up session', 'INFO');
             
             sessionActive = false;
-            realtimeConnected = false;
             
             if (sessionTimer) {
                 clearInterval(sessionTimer);
@@ -2084,13 +1936,9 @@
             
             await stopAzureSpeechAvatar();
             
-            // Disconnect from Realtime via proxy
-            if (socket) {
-                socket.emit('realtime_disconnect', {
-                    client_id: document.getElementById('clientId').value
-                });
-                socket.disconnect();
-                socket = null;
+            if (webSocket) {
+                webSocket.close();
+                webSocket = null;
             }
             
             if (audioProcessor) {
@@ -2119,7 +1967,6 @@
             updateVADStatus('Inactive');
             updateAudioQuality('--');
             updateAvatarStatus('Disconnected');
-            updateProxyStatus('Disconnected', false);
             
             const sessionTimeElement = document.getElementById('sessionTime');
             if (sessionTimeElement) {
@@ -2135,46 +1982,10 @@
 
         // Initialize application when DOM is ready
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                initializeApplication();
-                setupEventListeners();
-            });
+            document.addEventListener('DOMContentLoaded', initializeApplication);
         } else {
             // DOM is already loaded
-            setTimeout(() => {
-                initializeApplication();
-                setupEventListeners();
-            }, 100);
-        }
-        
-        // Setup event listeners for buttons
-        function setupEventListeners() {
-            // Main control button
-            const controlButton = document.getElementById('controlButton');
-            if (controlButton) {
-                controlButton.addEventListener('click', toggleVoiceSession);
-            }
-            
-            // Secondary buttons
-            const debugPanelBtn = document.getElementById('debugPanelBtn');
-            if (debugPanelBtn) {
-                debugPanelBtn.addEventListener('click', toggleDebugPanel);
-            }
-            
-            const avatarMetricsBtn = document.getElementById('avatarMetricsBtn');
-            if (avatarMetricsBtn) {
-                avatarMetricsBtn.addEventListener('click', toggleAvatarMetrics);
-            }
-            
-            const clearConversationBtn = document.getElementById('clearConversationBtn');
-            if (clearConversationBtn) {
-                clearConversationBtn.addEventListener('click', clearConversation);
-            }
-            
-            const testAvatarBtn = document.getElementById('testAvatarBtn');
-            if (testAvatarBtn) {
-                testAvatarBtn.addEventListener('click', testAvatarOnly);
-            }
+            setTimeout(initializeApplication, 100);
         }
 
         // Cleanup on page unload
