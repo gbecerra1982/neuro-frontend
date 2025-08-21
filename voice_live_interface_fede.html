@@ -1669,12 +1669,63 @@
                 return false;
             }
             
-            socket.emit('realtime_send', {
-                client_id: document.getElementById('clientId').value,
-                message: message
-            });
-            
-            return true;
+            try {
+                // Validar mensaje antes de enviarlo
+                if (!message || typeof message !== 'object') {
+                    log('Invalid message format', 'ERROR', message);
+                    return false;
+                }
+                
+                // Log del mensaje para debugging (excepto audio)
+                if (message.type && !message.type.includes('audio')) {
+                    log(`Sending to Realtime: ${message.type}`, 'NETWORK', message);
+                }
+                
+                // Validaciones específicas para function call outputs
+                if (message.type === 'conversation.item.create' && message.item) {
+                    const item = message.item;
+                    
+                    if (item.type === 'function_call_output') {
+                        // Validar call_id
+                        if (!item.call_id) {
+                            log('Missing call_id in function_call_output', 'ERROR', message);
+                            return false;
+                        }
+                        
+                        // Validar output
+                        if (item.output === undefined || item.output === null) {
+                            log('Missing output in function_call_output', 'ERROR', message);
+                            return false;
+                        }
+                        
+                        // Asegurar que output es string
+                        if (typeof item.output !== 'string') {
+                            try {
+                                item.output = JSON.stringify(item.output);
+                                log('Converted output to string', 'INFO');
+                            } catch (e) {
+                                log('Failed to stringify output', 'ERROR', e);
+                                return false;
+                            }
+                        }
+                        
+                        log(`Sending function call output for call_id: ${item.call_id}`, 'SUCCESS');
+                    }
+                }
+                
+                // Enviar mensaje via Socket.IO
+                socket.emit('realtime_send', {
+                    client_id: document.getElementById('clientId').value,
+                    message: message
+                });
+                
+                return true;
+                
+            } catch (error) {
+                log(`Error sending message to Realtime: ${error.message}`, 'ERROR');
+                console.error('Send error details:', error);
+                return false;
+            }
         }
 
         // ================================
@@ -1812,16 +1863,33 @@
         async function handleRealtimeEvent(event) {
             const eventType = event.type;
 
-            // ✅ AGREGAR ESTO: Log todos los eventos para debugging
+            // 🔍 DEBUG ESPECÍFICO PARA FUNCTION CALLS
             if (eventType.includes('function_call') || eventType.includes('tool')) {
+                console.log('🔍 === FUNCTION CALL EVENT DEBUG ===');
+                console.log('Event Type:', eventType);
+                console.log('Full Event Structure:', JSON.stringify(event, null, 2));
+                console.log('Event Keys:', Object.keys(event));
+                
+                // Buscar todas las posibles ubicaciones del nombre
+                const possibleNames = [
+                    event.name,
+                    event.function_call?.name,
+                    event.tool_call?.function?.name,
+                    event.item?.name,
+                    event.tool?.name,
+                    event.function?.name
+                ].filter(Boolean);
+                
+                console.log('Possible Names Found:', possibleNames);
+                console.log('🔍 ================================');
+                
                 log(`🔧 Function call event: ${eventType}`, 'INFO', event);
-                console.log('🔧 Full function call event:', event);
             } else if (!eventType.includes('audio') && !eventType.includes('delta')) {
-                // Solo loguear eventos no-audio para evitar spam
                 log(`📨 Realtime event: ${eventType}`, 'INFO');
             }
             
-            switch (eventType) {
+             switch (eventType) {
+                // Session events
                 case "session.created":
                     handleSessionCreated(event);
                     break;
@@ -1830,6 +1898,7 @@
                     await handleSessionUpdated(event);
                     break;
                     
+                // Audio input events
                 case "input_audio_buffer.speech_started":
                     handleSpeechStarted(event);
                     break;
@@ -1838,10 +1907,21 @@
                     handleSpeechStopped(event);
                     break;
                     
+                // Transcription events
                 case "conversation.item.input_audio_transcription.completed":
                     handleTranscriptionCompleted(event);
                     break;
-
+                    
+                // Response events
+                case "response.audio_transcript.done":
+                    handleResponseTranscriptComplete(event);
+                    break;
+                    
+                case "response.done":
+                    handleResponseComplete(event);
+                    break;
+                    
+                // Function call events - formato actual del Realtime API
                 case "response.function_call_arguments.started":
                     handleFunctionCallStarted(event);
                     break;
@@ -1853,8 +1933,8 @@
                 case "response.function_call_arguments.done":
                     await handleFunctionCallDone(event);
                     break;
-
-                // También para el nuevo formato de OpenAI
+                    
+                // Tool call events (formato alternativo)
                 case "response.tool_calls.started":
                     handleFunctionCallStarted(event);
                     break;
@@ -1867,14 +1947,33 @@
                     await handleFunctionCallDone(event);
                     break;
                     
-                case "response.audio_transcript.done":
-                    handleResponseTranscriptComplete(event);
+                // Conversation item events que pueden contener function calls
+                case "conversation.item.created":
+                    if (event.item && event.item.type === "function_call") {
+                        log('Function call item created', 'INFO', event);
+                        // El function call real vendrá en eventos posteriores
+                    }
                     break;
                     
-                case "response.done":
-                    handleResponseComplete(event);
+                // Response output events
+                case "response.output_item.added":
+                    if (event.item && event.item.type === "function_call") {
+                        log('Function call output item added', 'INFO', event);
+                        // Capturar call_id si no lo tenemos
+                        if (!currentFunctionCall.call_id && event.item.call_id) {
+                            currentFunctionCall.call_id = event.item.call_id;
+                            log(`Captured call_id from output item: ${event.item.call_id}`, 'INFO');
+                        }
+                    }
                     break;
                     
+                case "response.output_item.done":
+                    if (event.item && event.item.type === "function_call") {
+                        log('Function call output item done', 'INFO', event);
+                    }
+                    break;
+                    
+                // Error events
                 case "error":
                     handleError(event);
                     break;
@@ -1892,89 +1991,161 @@
         let currentFunctionCall = {
             call_id: null,
             name: null,
-            arguments: ""
+            arguments: "",
+            item_id: null,
+            output_item_id: null
         };
 
         function handleFunctionCallStarted(event) {
-            log(`Function call started: ${event.name}`, 'INFO');
+            log(`Function call started - Raw event:`, 'INFO', event);
+            
+            // Extraer call_id de diferentes posibles ubicaciones
+            const call_id = event.call_id || event.id || event.item_id || event.function_call?.id;
+            
+            // Extraer name con múltiples estrategias
+            let name = null;
+            
+            // Estrategia 1: Directamente en el evento
+            if (event.name) {
+                name = event.name;
+                log(`Function name found in event.name: ${name}`, 'SUCCESS');
+            }
+            // Estrategia 2: En function_call objeto
+            else if (event.function_call && event.function_call.name) {
+                name = event.function_call.name;
+                log(`Function name found in event.function_call.name: ${name}`, 'SUCCESS');
+            }
+            // Estrategia 3: En tool_call objeto  
+            else if (event.tool_call && event.tool_call.function && event.tool_call.function.name) {
+                name = event.tool_call.function.name;
+                log(`Function name found in event.tool_call.function.name: ${name}`, 'SUCCESS');
+            }
+            // Estrategia 4: Buscar en propiedades anidadas
+            else if (event.item && event.item.name) {
+                name = event.item.name;
+                log(`Function name found in event.item.name: ${name}`, 'SUCCESS');
+            }
+            // Estrategia 5: Buscar en tool
+            else if (event.tool && event.tool.name) {
+                name = event.tool.name;
+                log(`Function name found in event.tool.name: ${name}`, 'SUCCESS');
+            }
+            // Estrategia 6: Fallback hardcoded (basado en tu configuración)
+            else {
+                log(`No function name found in event, using fallback`, 'WARNING');
+                console.log('🔍 Full event structure for analysis:', JSON.stringify(event, null, 2));
+                
+                // Dado que solo tienes una función configurada, usar como fallback
+                name = "neuro_rag";
+                log(`Using fallback function name: ${name}`, 'WARNING');
+            }
+            
+            if (!call_id) {
+                log('⚠️ No call_id found in function call started event', 'WARNING', event);
+            }
+            
             currentFunctionCall = {
-                call_id: event.call_id,
-                name: event.name,
-                arguments: ""
+                call_id: call_id,
+                name: name,
+                arguments: "",
+                item_id: event.item_id || null,
+                output_item_id: null
             };
-            updateStatus(`Calling function: ${event.name}`);
+            
+            log(`Function call initialized: ${name || 'UNKNOWN'} (ID: ${call_id || 'UNKNOWN'})`, 'INFO');
+            updateStatus(`Calling function: ${name || 'unknown'}`);
+            
+            // Debug: Log del estado después de la inicialización
+            log('Function call state after initialization:', 'INFO', currentFunctionCall);
         }
+
 
         function handleFunctionCallDelta(event) {
             // Acumular argumentos del function call
-            if (event.delta) {
-                currentFunctionCall.arguments += event.delta;
+            const delta = event.delta || event.arguments || '';
+            
+            if (delta) {
+                currentFunctionCall.arguments += delta;
+                log(`Arguments delta received (${delta.length} chars)`, 'INFO');
             }
         }
 
         async function handleFunctionCallDone(event) {
             try {
-                log(`Function call completed: ${currentFunctionCall.name}`, 'INFO');
+                if (event.delta) currentFunctionCall.arguments += event.delta;
+                log(`Function/tool call completed: ${currentFunctionCall.name}`, 'INFO');
                 log(`Arguments: ${currentFunctionCall.arguments}`, 'INFO');
-                
-                // Parsear argumentos
-                const args = JSON.parse(currentFunctionCall.arguments);
-                
-                // Ejecutar function call según el nombre
+                const args = JSON.parse(currentFunctionCall.arguments || "{}");
                 let result;
                 switch (currentFunctionCall.name) {
-                    case "neuro_rag":
-                        result = await executeNeuroRagFunction(args);
-                        break;
-                    default:
-                        throw new Error(`Unknown function: ${currentFunctionCall.name}`);
+                case "neuro_rag":
+                    result = await executeNeuroRagFunction(args);
+                    break;
+                default:
+                    throw new Error(`Unknown function/tool: ${currentFunctionCall.name}`);
                 }
-                
-                // Enviar resultado de vuelta al Realtime API
-                const response = {
-                    type: "conversation.item.create",
-                    item: {
-                        type: "function_call_output",
-                        call_id: currentFunctionCall.call_id,
-                        output: JSON.stringify(result)
-                    }
-                };
-                
-                sendToRealtime(response);
-                
-                // Generar respuesta
+                if (currentFunctionCall.protocol === 'tools') {
+            (response.create + tool_outputs)
                 sendToRealtime({
-                    type: "response.create"
+                    type: "response.create",
+                    response: {
+                    tool_outputs: [{
+                        tool_call_id: currentFunctionCall.call_id,
+                        output: JSON.stringify(result)
+                    }]
+                    }
                 });
-                
-                updateStatus("Function executed successfully");
-                
-            } catch (error) {
-                log(`Function call error: ${error.message}`, 'ERROR');
-                
-                // Enviar error de vuelta al Realtime API
-                const errorResponse = {
+                } else {
+                sendToRealtime({
                     type: "conversation.item.create",
                     item: {
-                        type: "function_call_output", 
-                        call_id: currentFunctionCall.call_id,
-                        output: JSON.stringify({
-                            error: error.message,
-                            status: "error"
-                        })
+                    type: "function_call_output",
+                    call_id: currentFunctionCall.call_id,
+                    output: JSON.stringify(result)
                     }
-                };
-                
-                sendToRealtime(errorResponse);
+                });
                 sendToRealtime({ type: "response.create" });
-                
+                }
+                updateStatus("Function executed successfully");
+            } catch (error) {
+                log(`Function/tool call error: ${error.message}`, 'ERROR');
+                const toolError = {
+                error: error.message,
+                status: "error"
+                };
+                if (currentFunctionCall.protocol === 'tools') {
+                sendToRealtime({
+                    type: "response.create",
+                    response: {
+                    tool_outputs: [{
+                        tool_call_id: currentFunctionCall.call_id || event.call_id || event.id,
+                        output: JSON.stringify(toolError)
+                    }]
+                    }
+                });
+                } else {
+                sendToRealtime({
+                    type: "conversation.item.create",
+                    item: {
+                    type: "function_call_output",
+                    call_id: currentFunctionCall.call_id,
+                    output: JSON.stringify(toolError)
+                    }
+                });
+                sendToRealtime({ type: "response.create" });
+                }
                 showError(`Function call failed: ${error.message}`);
             }
-        }
+            }
 
         async function executeNeuroRagFunction(args) {
             try {
                 log('Executing neuro_rag function', 'INFO', args);
+                
+                // Validar argumentos
+                if (!args || !args.query) {
+                    throw new Error('Missing required argument: query');
+                }
                 
                 const payload = {
                     type: 'function_call',
@@ -1983,6 +2154,8 @@
                         session_id: document.getElementById('clientId').value
                     }
                 };
+                
+                log('Sending request to backend', 'INFO', payload);
                 
                 const response = await fetch('/api/neuro_rag', {
                     method: 'POST',
@@ -1993,29 +2166,35 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
                 
                 const result = await response.json();
                 log('Neuro RAG function executed successfully', 'SUCCESS');
                 
-                return {
+                // Formatear resultado para el Realtime API
+                const formattedResult = {
                     status: "success",
                     data: result,
-                    query: args.query
+                    query: args.query,
+                    timestamp: new Date().toISOString()
                 };
+                
+                return formattedResult;
                 
             } catch (error) {
                 log(`Neuro RAG function error: ${error.message}`, 'ERROR');
-                throw error;
+                
+                // Retornar error estructurado
+                return {
+                    status: "error",
+                    error: error.message,
+                    query: args?.query || "unknown",
+                    timestamp: new Date().toISOString()
+                };
             }
         }
-
-
-
-
-
-
 
 
         function handleSessionCreated(event) {
