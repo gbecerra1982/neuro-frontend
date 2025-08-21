@@ -875,6 +875,9 @@
         </div>
     </div>
 
+    <!-- Tool Call Synchronization Fix -->
+    <script src="/static/fix_tool_call_sync.js"></script>
+
     <script nonce="{{ csp_nonce }}">
         // ================================
         // GLOBAL CONFIGURATION AND STATE
@@ -1872,7 +1875,9 @@
         }
 
         // ===== Tool call state (supports multiple concurrent calls) =====
-        const toolCalls = new Map(); // call_id -> { name, args, protocol, timestamp }
+        // Initialize ToolCallManager for better synchronization
+        const toolCallManager = new ToolCallManager();
+        const toolCalls = new Map(); // Mantener para compatibilidad temporal
         let toolCallTimeoutChecker = null;
 
         // Heuristics to read fields across old/new contracts
@@ -1946,7 +1951,13 @@
                 event.call_id = tempId; // Inject for later use
             }
             
-            toolCalls.set(callId || event.call_id, { 
+            const finalCallId = callId || event.call_id;
+            
+            // Registrar en ToolCallManager
+            toolCallManager.registerToolCall(finalCallId, name, event);
+            
+            // Mantener compatibilidad con toolCalls
+            toolCalls.set(finalCallId, { 
                 name, 
                 args: "", 
                 protocol,
@@ -1955,9 +1966,10 @@
             });
             
             log(`[${new Date().toISOString()}] Tool call started: ${name}`, "INFO", {
-                callId: callId || event.call_id,
+                callId: finalCallId,
                 protocol,
-                activeCalls: toolCalls.size
+                activeCalls: toolCalls.size,
+                managerStats: toolCallManager.getStats()
             });
             
             updateStatus(`Calling function: ${name}`);
@@ -1967,15 +1979,20 @@
         // ===== Delta: append to the right call_id =====
         function handleFunctionCallDelta(event) {
             const callId = getCallId(event);
-            const entry = toolCalls.get(callId);
+            const delta = event?.delta || '';
             
+            // Usar ToolCallManager para manejar deltas
+            const wasBuffered = !toolCallManager.handleArgumentDelta(callId, delta);
+            
+            // Mantener compatibilidad con código existente
+            const entry = toolCalls.get(callId);
             if (entry && event?.delta) {
                 entry.args += event.delta;
                 log(`Delta received for ${entry.name}: +${event.delta.length} chars`, "DEBUG", {
                     callId,
                     totalLength: entry.args.length
                 });
-            } else if (!entry) {
+            } else if (!entry && !wasBuffered) {
                 log(`⚠️ Delta received for unknown call_id: ${callId}`, "WARN");
             }
         }
@@ -1984,10 +2001,24 @@
         async function handleFunctionCallDone(event) {
             const startTime = Date.now();
             const callId = getCallId(event);
+            
+            // Primero intentar con ToolCallManager
+            let managerCall = toolCallManager.completeArguments(callId);
             let entry = toolCalls.get(callId);
             
-            if (!entry) {
-                // Reconstruct minimal context
+            if (!entry && managerCall) {
+                // Usar datos del ToolCallManager
+                entry = {
+                    name: managerCall.name || getToolName(event) || "neuro_rag",
+                    args: managerCall.args,
+                    protocol: detectProtocol(event),
+                    timestamp: managerCall.startTime || Date.now(),
+                    startTime: managerCall.startTime || Date.now()
+                };
+                toolCalls.set(callId, entry);
+                log(`✅ Recovered tool call from ToolCallManager`, "INFO", { callId, name: entry.name });
+            } else if (!entry) {
+                // Fallback: Reconstruct minimal context
                 entry = { 
                     name: getToolName(event) || "neuro_rag", 
                     args: "", 
@@ -2186,9 +2217,18 @@
                 case "conversation.item.created":
                     if (event.item && event.item.type === "function_call") {
                         log('Function call item created', 'INFO', event);
-                        // Store potential call_id for later use
-                        if (event.item.call_id && !toolCalls.has(event.item.call_id)) {
-                            log(`Pre-storing call_id from item: ${event.item.call_id}`, 'DEBUG');
+                        // Register with ToolCallManager
+                        if (event.item.call_id) {
+                            const callId = event.item.call_id;
+                            const name = event.item.name || 'unknown';
+                            
+                            // Registrar en ToolCallManager
+                            toolCallManager.registerToolCall(callId, name, event.item);
+                            
+                            // Store potential call_id for later use (compatibilidad)
+                            if (!toolCalls.has(callId)) {
+                                log(`Pre-storing call_id from item: ${callId}`, 'DEBUG');
+                            }
                         }
                     }
                     break;
@@ -2197,12 +2237,21 @@
                 case "response.output_item.added":
                     if (event.item && event.item.type === "function_call") {
                         log('Function call output item added', 'INFO', event);
-                        // Capture call_id for orphaned calls
+                        // Register with ToolCallManager if not already registered
                         if (event.item.call_id) {
+                            const callId = event.item.call_id;
+                            const name = event.item.name || 'unknown';
+                            
+                            // Si no está registrado, registrarlo ahora
+                            if (!toolCallManager.isActive(callId) && !toolCallManager.isCompleted(callId)) {
+                                toolCallManager.registerToolCall(callId, name, event.item);
+                            }
+                            
+                            // Capture call_id for orphaned calls (compatibilidad)
                             const existingCall = Array.from(toolCalls.values()).find(c => !c.call_id);
                             if (existingCall) {
-                                existingCall.call_id = event.item.call_id;
-                                log(`Associated orphaned call with call_id: ${event.item.call_id}`, 'SUCCESS');
+                                existingCall.call_id = callId;
+                                log(`Associated orphaned call with call_id: ${callId}`, 'SUCCESS');
                             }
                         }
                     }
