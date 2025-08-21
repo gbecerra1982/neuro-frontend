@@ -925,21 +925,6 @@
             max: 0
         };
         
-        // Event history for debugging
-        const eventHistory = [];
-        const MAX_EVENT_HISTORY = 100;
-        
-        function logEvent(event) {
-            eventHistory.push({
-                ...event,
-                timestamp: Date.now(),
-                time: new Date().toISOString()
-            });
-            if (eventHistory.length > MAX_EVENT_HISTORY) {
-                eventHistory.shift();
-            }
-        }
-        
         // Configuration
         let config = null;
         let debugLog = [];
@@ -950,10 +935,10 @@
         const MAX_DEBUG_ENTRIES = 200;
         
         // Azure Speech configuration
-        const AZURE_SPEECH_KEY = '7TZA2Og761nyAROkbOxzdkEGEkJaa60lZQTwwV2roxxDJGxcOw0DJQQJ99BGACHYHv6XJ3w3AAAAACOGE4Cj';
-        const AZURE_SPEECH_REGION = 'eastus2';
-        const AZURE_AVATAR_CHARACTER = 'meg';
-        const AZURE_AVATAR_STYLE = 'business';
+        const AZURE_SPEECH_KEY = '4MoZOYx6C0Ej5I7SlujmBXfUi8MKHRw0R00DKzCYT5uOpz6fqNQAJQQJ99BHAC8vTInXJ3w3AAAYACOG6znw';
+        const AZURE_SPEECH_REGION = 'westus2';
+        const AZURE_AVATAR_CHARACTER = 'lisa';
+        const AZURE_AVATAR_STYLE = 'casual-sitting';
         
         // ================================
         // LOGGING AND DEBUG SYSTEM
@@ -1611,34 +1596,7 @@
             const sessionConfig = {
                 type: "session.update",
                 session: {
-                    instructions: `Tu nombre es Meg y eres una asistente experta en perforacion y workover de la industria del petroleo que trabaja para YPF. 
-                    IDIOMA: 
-                    Hablas solamente en castellano Argentino del Rio de la Plata.
-                    RESPUESTAS:
-                    Solamente puedes responder acerca de consultas relacionadas a los equipos, pozos, pads y yacimientos que pregunten los usuarios invocando la herramienta neuro_rag.
-                    En el caso de la pregunta del usuario no se encuentre dentro de este contexto simplemente responde de forma amable que la pregunta realizada no se encuentra dentro del ambito
-                    permitido para responder.
-
-                    MUY IMPORTANTE Recuerdalo siempre, la "Y" nunca la pronuncies como "Y griega" simplemente dila como una I comun.
-                    
-                    COMPORTAMIENTO MEJORADO:
-                    - Al comienzo de sesion siempre ofrece un saludo con amabilidad y acento argentino
-                    - Para preguntas específicas sobre YPF (equipos, pozos, workover, datos técnicos, procedimientos, sistemas):
-                    1. PRIMERO responde amablemente: "¡Dale! Te busco esa información de YPF al toque..."
-                    2. DESPUÉS usa la función 'neuro_rag' para obtener datos actualizados
-                    3. FINALMENTE responde con la información obtenida
-
-                    DETECCIÓN DE INTERRUPCIONES:
-                    - Si detectás que el usuario te interrumpe, para inmediatamente y preguntá: "¿Me interrumpiste? ¿Qué necesitás?"
-                    - Sé consciente de las interrupciones y manejá la conversación de forma natural
-                    
-                    EJEMPLOS:
-                    - "Hola" → Respuesta directa: "¡Che! ¿Cómo andás? Soy Meg, acá para ayudarte con todo lo de YPF"
-                    - "¿Qué tal el clima?" → Esta pregunta no se encuentra dentro del alcance permitido
-                    - "Datos del pozo X" → "¡Perfecto! Déjame consultar los datos del pozo en el sistema..." + function call
-                    
-                    TONO: Amigable, argentino, usando expresiones como "che", "dale", "al toque", "bárbaro", etc.
-                    Nunca dejes al usuario esperando en silencio - siempre da alguna respuesta inmediata antes de buscar información específica.`,
+                    instructions: "You are a helpful AI assistant. Respond in Spanish (Argentina).",
                     voice: "alloy",
                     turn_detection: {
                         type: "server_vad",
@@ -1652,95 +1610,26 @@
                         model: "whisper-1"
                     },
                     modalities: ["text", "audio"],
-                    tools: [
-                        {
-                            type: "function",
-                            name: "neuro_rag", // ✅ Nombre que coincide con tu endpoint
-                            description: "Consultar el sistema de RAG de YPF para obtener información sobre equipos, pozos, workover y datos técnicos",
-                            parameters: {
-                                type: "object",
-                                properties: {
-                                    query: {
-                                        type: "string",
-                                        description: "Consulta del usuario que será procesada por el sistema de RAG de YPF"
-                                    }
-                                },
-                                required: ["query"]
-                            }
-                        }
-                    ],
-                    temperature: 0.7,
-                    tool_choice: "auto"
+                    temperature: 0.7
                 }
             };
             
             sendToRealtime(sessionConfig);
             log('Session configuration sent via proxy', 'SUCCESS');
         }
-                
+        
         function sendToRealtime(message) {
             if (!socket || !realtimeConnected) {
                 log('Cannot send message - not connected to Realtime', 'WARNING');
                 return false;
             }
             
-            try {
-                // Validar mensaje antes de enviarlo
-                if (!message || typeof message !== 'object') {
-                    log('Invalid message format', 'ERROR', message);
-                    return false;
-                }
-                
-                // Log del mensaje para debugging (excepto audio)
-                if (message.type && !message.type.includes('audio')) {
-                    log(`Sending to Realtime: ${message.type}`, 'NETWORK', message);
-                }
-                
-                // Validaciones específicas para function call outputs
-                if (message.type === 'conversation.item.create' && message.item) {
-                    const item = message.item;
-                    
-                    if (item.type === 'function_call_output') {
-                        // Validar call_id
-                        if (!item.call_id) {
-                            log('Missing call_id in function_call_output', 'ERROR', message);
-                            return false;
-                        }
-                        
-                        // Validar output
-                        if (item.output === undefined || item.output === null) {
-                            log('Missing output in function_call_output', 'ERROR', message);
-                            return false;
-                        }
-                        
-                        // Asegurar que output es string
-                        if (typeof item.output !== 'string') {
-                            try {
-                                item.output = JSON.stringify(item.output);
-                                log('Converted output to string', 'INFO');
-                            } catch (e) {
-                                log('Failed to stringify output', 'ERROR', e);
-                                return false;
-                            }
-                        }
-                        
-                        log(`Sending function call output for call_id: ${item.call_id}`, 'SUCCESS');
-                    }
-                }
-                
-                // Enviar mensaje via Socket.IO
-                socket.emit('realtime_send', {
-                    client_id: document.getElementById('clientId').value,
-                    message: message
-                });
-                
-                return true;
-                
-            } catch (error) {
-                log(`Error sending message to Realtime: ${error.message}`, 'ERROR');
-                console.error('Send error details:', error);
-                return false;
-            }
+            socket.emit('realtime_send', {
+                client_id: document.getElementById('clientId').value,
+                message: message
+            });
+            
+            return true;
         }
 
         // ================================
@@ -1871,260 +1760,14 @@
             return renderedBuffer.getChannelData(0);
         }
 
-        // ===== Tool call state (supports multiple concurrent calls) =====
-        const toolCalls = new Map(); // call_id -> { name, args, protocol, timestamp }
-        let toolCallTimeoutChecker = null;
-
-        // Heuristics to read fields across old/new contracts
-        function getCallId(ev) {
-            return ev?.call_id || ev?.tool_call_id || ev?.id || ev?.item?.call_id || null;
-        }
-        function getToolName(ev) {
-            return ev?.name || ev?.tool_name || ev?.inline?.name || ev?.item?.name || ev?.tool?.name || null;
-        }
-        function detectProtocol(ev) {
-            const t = String(ev?.type || "");
-            return t.startsWith("response.tool_calls") ? "tools" : "legacy";
-        }
-
-        // Safe JSON parse with cleanup for trailing garbage
-        function safeParseJSON(raw) {
-            if (!raw || typeof raw !== "string") return {};
-            try { 
-                return JSON.parse(raw); 
-            } catch (e) {
-                log(`JSON parse failed (attempt 1): ${e.message}`, "WARN");
-            }
-            try {
-                const start = raw.indexOf("{");
-                const end = raw.lastIndexOf("}");
-                if (start !== -1 && end !== -1 && end > start) {
-                    return JSON.parse(raw.slice(start, end + 1));
-                }
-            } catch (e) {
-                log(`JSON parse failed (attempt 2): ${e.message}`, "WARN");
-                log(`Failed JSON content: ${raw.substring(0, 100)}...`, "DEBUG");
-            }
-            return {};
-        }
-
-        // Tool call timeout cleanup (30 seconds)
-        function startToolCallTimeoutChecker() {
-            if (toolCallTimeoutChecker) return;
-            
-            toolCallTimeoutChecker = setInterval(() => {
-                const now = Date.now();
-                const staleThreshold = 30000; // 30 seconds
-                
-                for (const [callId, toolCall] of toolCalls) {
-                    if (now - toolCall.timestamp > staleThreshold) {
-                        log(`Cleaning stale tool call: ${callId} (${toolCall.name})`, "WARN", {
-                            age: Math.round((now - toolCall.timestamp) / 1000) + "s",
-                            name: toolCall.name
-                        });
-                        toolCalls.delete(callId);
-                    }
-                }
-                
-                if (toolCalls.size === 0 && toolCallTimeoutChecker) {
-                    clearInterval(toolCallTimeoutChecker);
-                    toolCallTimeoutChecker = null;
-                }
-            }, 10000); // Check every 10 seconds
-        }
-
-        // ===== Started: create entry per call_id =====
-        function handleFunctionCallStarted(event) {
-            const timestamp = Date.now();
-            const callId = getCallId(event);
-            const name = getToolName(event) || "neuro_rag"; // fallback
-            const protocol = detectProtocol(event);
-            
-            if (!callId) {
-                log(`⚠️ No call_id found, generating temporary ID`, "WARN", event);
-                const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                event.call_id = tempId; // Inject for later use
-            }
-            
-            toolCalls.set(callId || event.call_id, { 
-                name, 
-                args: "", 
-                protocol,
-                timestamp,
-                startTime: timestamp
-            });
-            
-            log(`[${new Date().toISOString()}] Tool call started: ${name}`, "INFO", {
-                callId: callId || event.call_id,
-                protocol,
-                activeCalls: toolCalls.size
-            });
-            
-            updateStatus(`Calling function: ${name}`);
-            startToolCallTimeoutChecker();
-        }
-
-        // ===== Delta: append to the right call_id =====
-        function handleFunctionCallDelta(event) {
-            const callId = getCallId(event);
-            const entry = toolCalls.get(callId);
-            
-            if (entry && event?.delta) {
-                entry.args += event.delta;
-                log(`Delta received for ${entry.name}: +${event.delta.length} chars`, "DEBUG", {
-                    callId,
-                    totalLength: entry.args.length
-                });
-            } else if (!entry) {
-                log(`⚠️ Delta received for unknown call_id: ${callId}`, "WARN");
-            }
-        }
-
-        // ===== Done: parse args, execute, and send output =====
-        async function handleFunctionCallDone(event) {
-            const startTime = Date.now();
-            const callId = getCallId(event);
-            let entry = toolCalls.get(callId);
-            
-            if (!entry) {
-                // Reconstruct minimal context
-                entry = { 
-                    name: getToolName(event) || "neuro_rag", 
-                    args: "", 
-                    protocol: detectProtocol(event),
-                    timestamp: Date.now(),
-                    startTime: Date.now()
-                };
-                toolCalls.set(callId, entry);
-                log(`⚠️ Reconstructed missing tool call context`, "WARN", { callId, name: entry.name });
-            }
-
-            try {
-                // Prefer event.arguments over accumulated buffer
-                const rawArgs = event?.arguments ?? entry.args ?? "";
-                const args = safeParseJSON(rawArgs);
-
-                const executionTime = Date.now() - entry.startTime;
-                log(`[${new Date().toISOString()}] Tool call completed: ${entry.name}`, "INFO", {
-                    callId,
-                    executionTime: `${executionTime}ms`,
-                    argsLength: rawArgs.length
-                });
-                
-                log(`Arguments: ${JSON.stringify(args)}`, "DEBUG");
-
-                // Route to tool implementation
-                let result;
-                const toolStartTime = Date.now();
-                
-                switch (entry.name) {
-                    case "neuro_rag":
-                        result = await executeNeuroRagFunction(args);
-                        break;
-                    default:
-                        throw new Error(`Unknown tool/function: ${entry.name}`);
-                }
-                
-                const toolExecutionTime = Date.now() - toolStartTime;
-                log(`Tool ${entry.name} executed in ${toolExecutionTime}ms`, "PERF", {
-                    callId,
-                    success: true
-                });
-
-                // Send output back to model
-                const serialized = typeof result === "string" ? result : JSON.stringify(result);
-
-                if (entry.protocol === "tools" || String(event?.type || "").startsWith("response.tool_calls")) {
-                    sendToRealtime({
-                        type: "response.create",
-                        response: {
-                            tool_outputs: [{
-                                tool_call_id: callId,
-                                output: serialized
-                            }]
-                        }
-                    });
-                } else {
-                    sendToRealtime({
-                        type: "conversation.item.create",
-                        item: {
-                            type: "function_call_output",
-                            call_id: callId,
-                            output: serialized
-                        }
-                    });
-                    sendToRealtime({ type: "response.create" });
-                }
-
-                updateStatus(`Function executed successfully: ${entry.name}`);
-                log(`✅ Tool "${entry.name}" completed successfully`, "SUCCESS", { 
-                    callId, 
-                    protocol: entry.protocol,
-                    totalTime: `${Date.now() - entry.startTime}ms`
-                });
-                
-            } catch (err) {
-                const errorTime = Date.now() - entry.startTime;
-                log(`❌ Tool execution error (${entry.name}): ${err.message}`, "ERROR", {
-                    callId,
-                    errorTime: `${errorTime}ms`,
-                    stack: err.stack
-                });
-                
-                const toolError = { error: err.message, status: "error" };
-
-                if (entry.protocol === "tools" || String(event?.type || "").startsWith("response.tool_calls")) {
-                    sendToRealtime({
-                        type: "response.create",
-                        response: {
-                            tool_outputs: [{
-                                tool_call_id: callId,
-                                output: JSON.stringify(toolError)
-                            }]
-                        }
-                    });
-                } else {
-                    sendToRealtime({
-                        type: "conversation.item.create",
-                        item: {
-                            type: "function_call_output",
-                            call_id: callId,
-                            output: JSON.stringify(toolError)
-                        }
-                    });
-                    sendToRealtime({ type: "response.create" });
-                }
-                showError(`Function call failed: ${err.message}`);
-                
-            } finally {
-                // Clean up
-                toolCalls.delete(callId);
-                log(`Active tool calls remaining: ${toolCalls.size}`, "DEBUG");
-            }
-        }
-
         // ================================
         // REALTIME EVENT HANDLING
         // ================================
         
         async function handleRealtimeEvent(event) {
             const eventType = event.type;
-
-            // Enhanced logging for function calls
-            if (eventType.includes('function_call') || eventType.includes('tool')) {
-                log(`🔧 Tool/Function event: ${eventType}`, 'INFO', {
-                    type: eventType,
-                    timestamp: new Date().toISOString(),
-                    eventKeys: Object.keys(event)
-                });
-            } else if (!eventType.includes('audio') && !eventType.includes('delta')) {
-                log(`📨 Realtime event: ${eventType}`, 'INFO');
-            }
-            // Store event in history for debugging
-            logEvent(event);
             
-             switch (eventType) {
-                // Session events
+            switch (eventType) {
                 case "session.created":
                     handleSessionCreated(event);
                     break;
@@ -2133,7 +1776,6 @@
                     await handleSessionUpdated(event);
                     break;
                     
-                // Audio input events
                 case "input_audio_buffer.speech_started":
                     handleSpeechStarted(event);
                     break;
@@ -2142,12 +1784,10 @@
                     handleSpeechStopped(event);
                     break;
                     
-                // Transcription events
                 case "conversation.item.input_audio_transcription.completed":
                     handleTranscriptionCompleted(event);
                     break;
                     
-                // Response events
                 case "response.audio_transcript.done":
                     handleResponseTranscriptComplete(event);
                     break;
@@ -2156,145 +1796,11 @@
                     handleResponseComplete(event);
                     break;
                     
-                // Function call events - formato actual del Realtime API
-                case "response.function_call_arguments.started":
-                    handleFunctionCallStarted(event);
-                    break;
-                    
-                case "response.function_call_arguments.delta":
-                    handleFunctionCallDelta(event);
-                    break;
-                    
-                case "response.function_call_arguments.done":
-                    await handleFunctionCallDone(event);
-                    break;
-                    
-                // Tool call events (formato alternativo)
-                case "response.tool_calls.started":
-                    handleFunctionCallStarted(event);
-                    break;
-                    
-                case "response.tool_calls.delta":
-                    handleFunctionCallDelta(event);
-                    break;
-                    
-                case "response.tool_calls.done":
-                    await handleFunctionCallDone(event);
-                    break;
-                    
-                // Conversation item events que pueden contener function calls
-                case "conversation.item.created":
-                    if (event.item && event.item.type === "function_call") {
-                        log('Function call item created', 'INFO', event);
-                        // Store potential call_id for later use
-                        if (event.item.call_id && !toolCalls.has(event.item.call_id)) {
-                            log(`Pre-storing call_id from item: ${event.item.call_id}`, 'DEBUG');
-                        }
-                    }
-                    break;
-                    
-                // Response output events
-                case "response.output_item.added":
-                    if (event.item && event.item.type === "function_call") {
-                        log('Function call output item added', 'INFO', event);
-                        // Capture call_id for orphaned calls
-                        if (event.item.call_id) {
-                            const existingCall = Array.from(toolCalls.values()).find(c => !c.call_id);
-                            if (existingCall) {
-                                existingCall.call_id = event.item.call_id;
-                                log(`Associated orphaned call with call_id: ${event.item.call_id}`, 'SUCCESS');
-                            }
-                        }
-                    }
-                    break;
-                    
-                case "response.output_item.done":
-                    if (event.item && event.item.type === "function_call") {
-                        log('Function call output item done', 'INFO', {
-                            call_id: event.item.call_id,
-                            name: event.item.name,
-                            activeCalls: toolCalls.size
-                        });
-                    }
-                    break;
-                    
-                // Error events
                 case "error":
                     handleError(event);
                     break;
-                
-                default:
-                    // Log eventos no manejados
-                    if (!eventType.includes('audio') && !eventType.includes('delta')) {
-                        log(`⚠️ Unhandled event type: ${eventType}`, 'WARNING', {
-                            type: eventType,
-                            hasItem: !!event.item,
-                            keys: Object.keys(event).slice(0, 10)
-                        });
-                    }
-                    break;
             }
         }
-
-
-        async function executeNeuroRagFunction(args) {
-            try {
-                log('Executing neuro_rag function', 'INFO', args);
-                
-                // Validar argumentos
-                if (!args || !args.query) {
-                    throw new Error('Missing required argument: query');
-                }
-                
-                const payload = {
-                    type: 'function_call',
-                    parameters: {
-                        query: args.query,
-                        session_id: document.getElementById('clientId').value
-                    }
-                };
-                
-                log('Sending request to backend', 'INFO', payload);
-                
-                const response = await fetch('/api/neuro_rag', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-                
-                const result = await response.json();
-                log('Neuro RAG function executed successfully', 'SUCCESS');
-                
-                // Formatear resultado para el Realtime API
-                const formattedResult = {
-                    status: "success",
-                    data: result,
-                    query: args.query,
-                    timestamp: new Date().toISOString()
-                };
-                
-                return formattedResult;
-                
-            } catch (error) {
-                log(`Neuro RAG function error: ${error.message}`, 'ERROR');
-                
-                // Retornar error estructurado
-                return {
-                    status: "error",
-                    error: error.message,
-                    query: args?.query || "unknown",
-                    timestamp: new Date().toISOString()
-                };
-            }
-        }
-
 
         function handleSessionCreated(event) {
             updateStatus('Session created');
@@ -2641,44 +2147,6 @@
             }, 100);
         }
         
-        // Export debug data for analysis
-        function exportDebugData() {
-            const debugData = {
-                timestamp: new Date().toISOString(),
-                sessionInfo: {
-                    active: sessionActive,
-                    connected: realtimeConnected,
-                    avatarConnected: azureSpeechAvatarConnected,
-                    duration: sessionStartTime ? Date.now() - sessionStartTime : 0
-                },
-                toolCalls: {
-                    active: toolCalls.size,
-                    entries: Array.from(toolCalls.entries()).map(([id, call]) => ({
-                        id,
-                        name: call.name,
-                        protocol: call.protocol,
-                        age: Date.now() - call.timestamp
-                    }))
-                },
-                eventHistory: eventHistory.slice(-50), // Last 50 events
-                debugLog: debugLog.slice(0, 100), // Last 100 log entries
-                metrics: {
-                    audio: audioQualityMetrics,
-                    avatar: avatarLatencyStats
-                }
-            };
-            
-            const blob = new Blob([JSON.stringify(debugData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `voice-debug-${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            
-            log('Debug data exported', 'SUCCESS');
-        }
-        
         // Setup event listeners for buttons
         function setupEventListeners() {
             // Main control button
@@ -2707,13 +2175,6 @@
             if (testAvatarBtn) {
                 testAvatarBtn.addEventListener('click', testAvatarOnly);
             }
-            
-            // Add keyboard shortcut for debug export (Ctrl+Shift+D)
-            document.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-                    exportDebugData();
-                }
-            });
         }
 
         // Cleanup on page unload

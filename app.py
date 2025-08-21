@@ -15,6 +15,11 @@ import threading
 import secrets
 from datetime import datetime
 from dotenv import load_dotenv
+import httpx
+import asyncio
+import traceback
+import time
+from functools import wraps
 
 # 3rd party for Speech STS and WebSocket proxy
 import requests
@@ -41,14 +46,23 @@ except ImportError:
     MINIPYWO_AVAILABLE = False
     logging.warning("minipywo system not available - function calling will be limited")
 
+from logging_config import setup_logging
+
+# Setup logging before anything else
+setup_logging()
+
 # Load environment variables
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(
-    level=os.environ.get('LOG_LEVEL', 'WARNING'),  # Cambiar a WARNING para reducir logs
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('azure_speech_proxy.log')
+    ]
 )
+
 logger = logging.getLogger(__name__)
 
 # Reducir el nivel de logging de werkzeug y engineio
@@ -62,6 +76,23 @@ if os.environ.get('DEBUG_MODE', 'false').lower() == 'true':
     logging.getLogger('werkzeug').setLevel(logging.INFO)
     logging.getLogger('engineio.server').setLevel(logging.INFO)
     logging.getLogger('socketio.server').setLevel(logging.INFO)
+
+# Create specific loggers for different components
+logger = logging.getLogger('azure_speech_proxy')
+request_logger = logging.getLogger('azure_speech_proxy.requests')
+response_logger = logging.getLogger('azure_speech_proxy.responses')
+error_logger = logging.getLogger('azure_speech_proxy.errors')
+performance_logger = logging.getLogger('azure_speech_proxy.performance')
+
+# Set different log levels if needed
+logger.setLevel(logging.DEBUG)
+request_logger.setLevel(logging.DEBUG)
+response_logger.setLevel(logging.DEBUG)
+error_logger.setLevel(logging.ERROR)
+performance_logger.setLevel(logging.INFO)
+
+
+
 
 # ================================
 # ENVIRONMENT VARIABLES
@@ -86,8 +117,8 @@ ICE_SERVER_PASSWORD = os.environ.get('ICE_SERVER_PASSWORD')
 
 # Avatar Configuration
 ENABLE_AVATAR = os.environ.get('ENABLE_AVATAR', 'true').lower() == 'true'
-AVATAR_CHARACTER = os.environ.get('AVATAR_CHARACTER', 'lisa')
-AVATAR_STYLE = os.environ.get('AVATAR_STYLE', 'casual-sitting')
+AVATAR_CHARACTER = os.environ.get('AVATAR_CHARACTER', 'meg')
+AVATAR_STYLE = os.environ.get('AVATAR_STYLE', 'business')
 AVATAR_BACKGROUND_COLOR = os.environ.get('AVATAR_BACKGROUND_COLOR', '#FFFFFFFF')
 AVATAR_BACKGROUND_IMAGE = os.environ.get('AVATAR_BACKGROUND_IMAGE', '')
 AVATAR_RESOLUTION_WIDTH = int(os.environ.get('AVATAR_RESOLUTION_WIDTH', 1920))
@@ -122,6 +153,10 @@ SESSION_CLEANUP_INTERVAL = int(os.environ.get('SESSION_CLEANUP_INTERVAL', 300))
 # Server Configuration
 FLASK_PORT = int(os.environ.get('FLASK_PORT', 5000))
 FLASK_HOST = os.environ.get('FLASK_HOST', '0.0.0.0')
+
+#backend config
+FASTAPI_URL = "http://localhost:8000/ask"
+REQUEST_TIMEOUT = 15
 
 # Version & Templates centralizados
 APP_VERSION = os.environ.get('APP_VERSION', '2.1.0')
@@ -463,16 +498,6 @@ def add_security_headers(response):
     
     return response
 
-# ================================
-# MINIPYWO INIT (opcional)
-# ================================
-if MINIPYWO_AVAILABLE:
-    try:
-        wl_pywo = minipywo_app()
-        logger.info("minipywo system initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize minipywo: {e}")
-        MINIPYWO_AVAILABLE = False
 
 # ================================
 # CLIENT SESSION MGMT
@@ -612,7 +637,6 @@ def get_voice_live_config():
             },
             "features": {
                 "avatar": ENABLE_AVATAR,
-                "minipywo": MINIPYWO_AVAILABLE,
                 "functionCalling": True,
                 "streaming": True,
                 "interruptions": True,
@@ -635,17 +659,22 @@ def get_voice_live_config():
                 {"urls": "stun:stun1.l.google.com:19302"}
             ]
 
-        if MINIPYWO_AVAILABLE:
-            config["tools"] = [{
-                "type": "function",
-                "name": "query_minipywo",
-                "description": "Query minipywo system for YPF equipment, wells, workover, and technical data",
-                "parameters": {
-                    "type": "object",
-                    "properties": { "query": { "type": "string", "description": "User query to be processed by minipywo" } },
-                    "required": ["query"]
+        config["tools"] = [{
+            "type": "function",
+            "name": "neuro_rag",
+            "description": "Consultar el sistema agentico de RAG de YPF acerca de equipos, pozos y datos tecnicos de ellos",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Consulta del usuario que sera procesada por neuro rag"
+                            }
+                        },
+                "required": ["query"]
+                    }
                 }
-            }]
+        ]
 
         return jsonify(config)
 
@@ -709,46 +738,361 @@ def get_speech_token():
 
 # ==== minipywo API (sin cambios funcionales) ====
 
-@app.route("/api/minipywo-process", methods=["POST"])
-def api_minipywo_process():
-    if not MINIPYWO_AVAILABLE:
-        return jsonify({ "status": "error", "message": "minipywo system not available" }), 503
+# Decorator to make Flask routes asynchronous with logging
+def async_route(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        logger.debug(f"Starting async route: {f.__name__}")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(f(*args, **kwargs))
+            logger.debug(f"Completed async route: {f.__name__}")
+            return result
+        except Exception as e:
+            error_logger.error(f"Error in async route {f.__name__}: {str(e)}", exc_info=True)
+            raise
+        finally:
+            loop.close()
+            logger.debug(f"Closed event loop for route: {f.__name__}")
+    return wrapper
+
+# Helper function to safely log JSON data
+def safe_json_log(data, max_length=1000):
+    """Safely convert data to JSON string for logging with truncation"""
     try:
-        data = request.get_json()
-        user_message = data.get('message', '')
-        client_id = data.get('client_id', generate_client_id())
-        vad_metrics = data.get('vad_metrics', {})
-
-        logger.info(f"Processing with minipywo: {user_message}")
-
-        corrected_message = replace_token(user_message, original_list, replacement_list)
-        config = {"configurable": {"thread_id": client_id}}
-        result = wl_pywo.invoke({"question": corrected_message}, config)
-        response_text = result.get("query_result", "Error processing YPF query")
-
-        session = get_or_create_session(client_id)
-        session['messages'].append({'role': 'user','content': user_message,'timestamp': datetime.now().isoformat()})
-        session['messages'].append({'role': 'assistant','content': response_text,'timestamp': datetime.now().isoformat()})
-
-        if ENABLE_METRICS and client_id in session_metrics:
-            session_metrics[client_id]['message_count'] += 2
-
-        logger.info(f"minipywo response: {response_text[:100]}...")
-        return jsonify({
-            "status": "success",
-            "response": response_text,
-            "client_id": client_id,
-            "source": "minipywo_ypf_system",
-            "original_query": user_message,
-            "corrected_query": corrected_message,
-            "vad_metrics": vad_metrics,
-            "processing_time": 0
-        })
+        json_str = json.dumps(data, default=str)
+        if len(json_str) > max_length:
+            return json_str[:max_length] + "... [TRUNCATED]"
+        return json_str
     except Exception as e:
-        logger.error(f"Error processing with minipywo: {e}")
-        if ENABLE_METRICS and client_id in session_metrics:
-            session_metrics[client_id]['errors'] += 1
-        return jsonify({ "status": "error", "message": str(e), "source": "minipywo_error" }), 500
+        return f"<Unable to serialize: {str(e)}>"
+
+# Request ID generator for tracking
+def generate_request_id():
+    return f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{str(time.time()).replace('.', '')[-6:]}"
+
+# Agregar esta función auxiliar después de la línea 500 aproximadamente
+def normalize_function_call_payload(data):
+    """
+    Normaliza el payload para asegurar consistencia entre diferentes fuentes
+    """
+    try:
+        # Si viene directamente del Realtime API como function call
+        if isinstance(data, dict):
+            # Verificar si tiene la estructura de function call del frontend
+            if data.get('type') == 'function_call':
+                parameters = data.get('parameters', {})
+                return {
+                    "question": parameters.get('query', ''),
+                    "session_id": parameters.get('session_id', 'default_session')
+                }
+            
+            # Si ya tiene el formato correcto
+            if 'question' in data:
+                return data
+            
+            # Si viene con estructura diferente, intentar extraer query
+            if 'query' in data:
+                return {
+                    "question": data.get('query', ''),
+                    "session_id": data.get('session_id', 'default_session')
+                }
+        
+        # Fallback: asumir que es una pregunta directa
+        return {
+            "question": str(data) if data else '',
+            "session_id": 'default_session'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error normalizing payload: {e}")
+        return {
+            "question": '',
+            "session_id": 'default_session'
+        }
+
+@app.route('/api/neuro_rag', methods=['POST'])
+@async_route
+async def minipywo_proxy():
+    """
+    Improved asynchronous proxy for Azure Speech Live Voice with Avatar
+    Enhanced to handle function calls from Realtime API
+    """
+    # Generate unique request ID for tracking
+    request_id = generate_request_id()
+    start_time = time.time()
+    
+    logger.info(f"[{request_id}] New request received at {datetime.utcnow().isoformat()}")
+    
+    # Log request details
+    request_logger.debug(f"[{request_id}] Request method: {request.method}")
+    request_logger.debug(f"[{request_id}] Request URL: {request.url}")
+    request_logger.debug(f"[{request_id}] Request headers: {dict(request.headers)}")
+    request_logger.debug(f"[{request_id}] Request remote addr: {request.remote_addr}")
+    
+    # Log raw data for debugging
+    if request.data:
+        request_logger.debug(f"[{request_id}] Raw data length: {len(request.data)} bytes")
+        request_logger.debug(f"[{request_id}] Raw data preview: {repr(request.data[:500])}")
+    
+    try:
+        # Get JSON data from request
+        logger.debug(f"[{request_id}] Attempting to parse JSON data")
+        data = request.get_json(force=True, silent=True)
+        
+        if not data:
+            error_logger.warning(f"[{request_id}] No JSON data provided in request")
+            return jsonify({'error': 'No JSON data provided', 'request_id': request_id}), 400
+        
+        request_logger.info(f"[{request_id}] Received data: {safe_json_log(data)}")
+        
+        # Normalize payload using the new function
+        logger.debug(f"[{request_id}] Normalizing payload for FastAPI")
+        payload = normalize_function_call_payload(data)
+        
+        # Log final payload
+        request_logger.debug(f"[{request_id}] Final payload to FastAPI: {safe_json_log(payload)}")
+        
+        # Basic payload validation
+        if not payload.get('question'):
+            error_logger.warning(f"[{request_id}] Missing or empty 'question' field in payload")
+            return jsonify({'error': 'Question is required', 'request_id': request_id}), 400
+        
+        logger.info(f"[{request_id}] Question length: {len(payload.get('question', ''))} characters")
+        
+        # Make asynchronous call to FastAPI
+        logger.info(f"[{request_id}] Initiating async call to FastAPI: {FASTAPI_URL}")
+        fastapi_start_time = time.time()
+        
+        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+            logger.debug(f"[{request_id}] HTTP client created with timeout: {REQUEST_TIMEOUT}s")
+            
+            response = await client.post(FASTAPI_URL, json=payload)
+            
+            fastapi_duration = time.time() - fastapi_start_time
+            performance_logger.info(f"[{request_id}] FastAPI call duration: {fastapi_duration:.3f}s")
+            
+            # Log response details
+            response_logger.info(f"[{request_id}] FastAPI response status: {response.status_code}")
+            response_logger.debug(f"[{request_id}] FastAPI response headers: {dict(response.headers)}")
+            
+            # Log response body (be careful with large responses)
+            response_text = response.text
+            response_logger.debug(f"[{request_id}] Response length: {len(response_text)} characters")
+            
+            if len(response_text) <= 1000:
+                response_logger.debug(f"[{request_id}] Response body: {response_text}")
+            else:
+                response_logger.debug(f"[{request_id}] Response preview: {response_text[:500]}... [TRUNCATED]")
+            
+            # Prepare response headers
+            logger.debug(f"[{request_id}] Processing response headers")
+            response_headers = dict(response.headers)
+            
+            # Remove headers that can cause issues
+            headers_to_remove = ['content-encoding', 'content-length', 'transfer-encoding']
+            for header in headers_to_remove:
+                if header in response_headers:
+                    logger.debug(f"[{request_id}] Removing header: {header}")
+                    response_headers.pop(header, None)
+            
+            # Calculate total processing time
+            total_duration = time.time() - start_time
+            performance_logger.info(f"[{request_id}] Total request processing time: {total_duration:.3f}s")
+            
+            # Add custom headers for tracking
+            response_headers['X-Request-ID'] = request_id
+            response_headers['X-Processing-Time'] = str(total_duration)
+            
+            logger.info(f"[{request_id}] Request completed successfully")
+            
+            # Return response maintaining original format
+            return Response(
+                response_text,
+                status=response.status_code,
+                headers=response_headers,
+                content_type=response.headers.get('content-type', 'application/json')
+            )
+            
+    except httpx.TimeoutException as e:
+        duration = time.time() - start_time
+        error_msg = f"Timeout connecting to FastAPI after {REQUEST_TIMEOUT} seconds"
+        error_logger.error(f"[{request_id}] {error_msg} - Duration: {duration:.3f}s", exc_info=True)
+        return jsonify({
+            'error': error_msg,
+            'request_id': request_id,
+            'duration': duration
+        }), 504
+        
+    except httpx.RequestError as e:
+        duration = time.time() - start_time
+        error_msg = f"Connection error with FastAPI: {str(e)}"
+        error_logger.error(f"[{request_id}] {error_msg} - Duration: {duration:.3f}s", exc_info=True)
+        return jsonify({
+            'error': error_msg,
+            'request_id': request_id,
+            'duration': duration,
+            'details': str(e)
+        }), 503
+        
+    except json.JSONDecodeError as e:
+        duration = time.time() - start_time
+        error_logger.error(f"[{request_id}] JSON decode error: {str(e)} - Duration: {duration:.3f}s", exc_info=True)
+        return jsonify({
+            'error': 'Invalid JSON in request',
+            'request_id': request_id,
+            'duration': duration,
+            'details': str(e)
+        }), 400
+        
+    except Exception as e:
+        duration = time.time() - start_time
+        error_logger.critical(f"[{request_id}] Unexpected error: {str(e)} - Duration: {duration:.3f}s", exc_info=True)
+        traceback.print_exc()
+        return jsonify({
+            'error': f'Internal error: {str(e)}',
+            'request_id': request_id,
+            'duration': duration,
+            'type': type(e).__name__
+        }), 500
+    
+    finally:
+        # Log request completion regardless of outcome
+        total_time = time.time() - start_time
+        logger.info(f"[{request_id}] Request finished. Total time: {total_time:.3f}s")
+        
+# Optional: Health check endpoint with logging
+@app.route('/api/health', methods=['GET'])
+@async_route
+async def health_check():
+    """Verify FastAPI service availability"""
+    request_id = generate_request_id()
+    start_time = time.time()
+    
+    logger.info(f"[{request_id}] Health check initiated")
+    
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            health_url = f"{FASTAPI_URL.replace('/ask', '')}/health"
+            logger.debug(f"[{request_id}] Checking FastAPI health at: {health_url}")
+            
+            response = await client.get(health_url)
+            duration = time.time() - start_time
+            
+            if response.status_code == 200:
+                logger.info(f"[{request_id}] Health check successful - Duration: {duration:.3f}s")
+                return jsonify({
+                    'status': 'healthy',
+                    'fastapi': 'connected',
+                    'request_id': request_id,
+                    'duration': duration
+                }), 200
+            else:
+                logger.warning(f"[{request_id}] Health check failed with status: {response.status_code}")
+                return jsonify({
+                    'status': 'unhealthy',
+                    'fastapi_status': response.status_code,
+                    'request_id': request_id,
+                    'duration': duration
+                }), 503
+                
+    except Exception as e:
+        duration = time.time() - start_time
+        error_logger.error(f"[{request_id}] Health check error: {str(e)} - Duration: {duration:.3f}s", exc_info=True)
+        return jsonify({
+            'status': 'degraded',
+            'fastapi': 'disconnected',
+            'error': str(e),
+            'request_id': request_id,
+            'duration': duration
+        }), 503
+
+# Optional: Streaming version for long responses with logging
+@app.route('/api/neuro_rag_stream', methods=['POST'])
+@async_route
+async def minipywo_proxy_stream():
+    """
+    Streaming version for long Azure Speech responses
+    """
+    request_id = generate_request_id()
+    start_time = time.time()
+    chunks_sent = 0
+    total_bytes = 0
+    
+    logger.info(f"[{request_id}] Stream request initiated")
+    
+    try:
+        data = request.get_json(force=True, silent=True)
+        request_logger.debug(f"[{request_id}] Stream request data: {safe_json_log(data)}")
+        
+        if data.get('type') == 'function_call':
+            parameters = data.get('parameters', {})
+            payload = {
+                "question": parameters.get('query', ''),
+                "session_id": parameters.get('session_id', 'default_session')
+            }
+        else:
+            payload = data
+        
+        logger.info(f"[{request_id}] Starting stream with payload: {safe_json_log(payload)}")
+        
+        async def generate():
+            nonlocal chunks_sent, total_bytes
+            
+            try:
+                async with httpx.AsyncClient(timeout=30) as client:
+                    logger.debug(f"[{request_id}] Opening stream connection to FastAPI")
+                    
+                    async with client.stream('POST', FASTAPI_URL, json=payload) as response:
+                        response_logger.info(f"[{request_id}] Stream response status: {response.status_code}")
+                        
+                        async for chunk in response.aiter_bytes():
+                            chunk_size = len(chunk)
+                            chunks_sent += 1
+                            total_bytes += chunk_size
+                            
+                            if chunks_sent % 10 == 0:  # Log every 10 chunks
+                                logger.debug(f"[{request_id}] Sent {chunks_sent} chunks, {total_bytes} bytes")
+                            
+                            yield chunk
+                        
+                        duration = time.time() - start_time
+                        performance_logger.info(
+                            f"[{request_id}] Stream completed: {chunks_sent} chunks, "
+                            f"{total_bytes} bytes in {duration:.3f}s"
+                        )
+                        
+            except Exception as e:
+                error_logger.error(f"[{request_id}] Stream error: {str(e)}", exc_info=True)
+                raise
+        
+        return Response(generate(), content_type='application/json')
+        
+    except Exception as e:
+        duration = time.time() - start_time
+        error_logger.error(f"[{request_id}] Stream request failed: {str(e)} - Duration: {duration:.3f}s", exc_info=True)
+        return jsonify({
+            'error': str(e),
+            'request_id': request_id,
+            'duration': duration
+        }), 500
+
+# Middleware to log all requests
+@app.before_request
+def log_request_info():
+    """Log information about incoming requests"""
+    logger.debug(f"Incoming {request.method} request to {request.path}")
+    if request.args:
+        logger.debug(f"Query parameters: {dict(request.args)}")
+
+# Middleware to log all responses
+@app.after_request
+def log_response_info(response):
+    """Log information about outgoing responses"""
+    logger.debug(f"Response status: {response.status_code}")
+    return response
+
 
 # ==== Avatar control ====
 
@@ -1142,4 +1486,11 @@ if __name__ == "__main__":
     logger.warning(f"Server starting on {FLASK_HOST}:{FLASK_PORT}")
     logger.warning("WebSocket proxy ready for Azure OpenAI Realtime API")
 
-    socketio.run(app, host=FLASK_HOST, port=FLASK_PORT, debug=False, use_reloader=False)
+    logger.info("="*50)
+    logger.info("Azure Speech Live Voice Proxy Starting")
+    logger.info(f"FastAPI URL: {FASTAPI_URL}")
+    logger.info(f"Request Timeout: {REQUEST_TIMEOUT}s")
+    logger.info(f"Log Level: {logging.getLevelName(logger.level)}")
+    logger.info("="*50)
+
+    socketio.run(app, host=FLASK_HOST, port=FLASK_PORT, debug=True, use_reloader=False)
