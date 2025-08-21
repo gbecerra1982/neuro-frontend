@@ -177,7 +177,7 @@ def run_api(host: str = "0.0.0.0", port: int = 8000, debug: bool = False):
                         "datefmt": "%Y-%m-%d %H:%M:%S"
                     },
                     "access": {
-                        "format": '%(asctime)s | ACCESS | %(client)s | "%(request_line)s" | %(status_code)s | %(response_length)s bytes | %(duration).3fs',
+                        "format": '%(asctime)s | ACCESS | %(message)s',
                         "datefmt": "%Y-%m-%d %H:%M:%S"
                     }
                 },

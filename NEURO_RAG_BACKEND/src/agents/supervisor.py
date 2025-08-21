@@ -297,12 +297,12 @@ def procesar_consulta_langgraph(user_question: str, session_id: str = "default_s
             "Tu consulta está fuera del alcance de esta aplicación. "
             "Solo puedo responder sobre pozos, equipos y yacimientos de Vaca Muerta "
         )
-        logger.info(f"❌ CONSULTA FUERA DE ALCANCE: {fuera_de_scope}")
+        logger.info(f"[X] CONSULTA FUERA DE ALCANCE: {fuera_de_scope}")
         return fuera_de_scope, session_id
  
     # CAMBIADO: Usar directamente el agente RAG en lugar del supervisor
     try:
-        logger.info(f"🤖 INVOCANDO AGENTE RAG...")
+        logger.info(f"[BOT] INVOCANDO AGENTE RAG...")
         # Crear un estado inicial compatible con el prompt RAG
        
         # El prompt template YA tiene las variables formateadas (pozos, today)
