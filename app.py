@@ -185,9 +185,13 @@ original_list, replacement_list = load_text_corrections()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET', str(uuid.uuid4()))
 
-# CORS
+# CORS with enhanced configuration
 cors_origins = os.environ.get('CORS_ORIGINS', '*').split(',')
-CORS(app, origins=cors_origins)
+CORS(app, 
+     origins=cors_origins,
+     supports_credentials=True,
+     expose_headers=['Content-Type', 'X-Request-Id'],
+     allow_headers=['Content-Type', 'X-Requested-With', 'Authorization'])
 
 # SocketIO with proper configuration for Socket.IO CDN
 socketio = SocketIO(
@@ -1089,8 +1093,14 @@ def log_request_info():
 # Middleware to log all responses
 @app.after_request
 def log_response_info(response):
-    """Log information about outgoing responses"""
+    """Log information about outgoing responses and add proxy bypass headers"""
     logger.debug(f"Response status: {response.status_code}")
+    
+    # Add headers to help bypass proxy issues
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
     return response
 
 
