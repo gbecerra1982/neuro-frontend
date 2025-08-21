@@ -156,7 +156,7 @@ FLASK_HOST = os.environ.get('FLASK_HOST', '0.0.0.0')
 
 #backend config
 FASTAPI_URL = "http://localhost:8000/ask"
-REQUEST_TIMEOUT = 15
+REQUEST_TIMEOUT = 120
 
 # Version & Templates centralizados
 APP_VERSION = os.environ.get('APP_VERSION', '2.1.0')
