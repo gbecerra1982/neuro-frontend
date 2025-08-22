@@ -1,0 +1,191 @@
+{
+  "name": "neuro-rag-semantic-chunks",
+  "fields": [
+    {
+      "name": "chunk_id",
+      "type": "Edm.String",
+      "key": true,
+      "searchable": false,
+      "filterable": true,
+      "retrievable": true,
+      "sortable": false,
+      "facetable": false
+    },
+    {
+      "name": "parent_id",
+      "type": "Edm.String",
+      "searchable": false,
+      "filterable": true,
+      "retrievable": true,
+      "sortable": false,
+      "facetable": false
+    },
+    {
+      "name": "chunk_content",
+      "type": "Edm.String",
+      "searchable": true,
+      "filterable": false,
+      "retrievable": true,
+      "sortable": false,
+      "facetable": false,
+      "analyzer": "standard.lucene"
+    },
+    {
+      "name": "chunk_index",
+      "type": "Edm.Int32",
+      "searchable": false,
+      "filterable": true,
+      "retrievable": true,
+      "sortable": true,
+      "facetable": false
+    },
+    {
+      "name": "header_1",
+      "type": "Edm.String",
+      "searchable": true,
+      "filterable": true,
+      "retrievable": true,
+      "sortable": false,
+      "facetable": true
+    },
+    {
+      "name": "header_2",
+      "type": "Edm.String",
+      "searchable": true,
+      "filterable": true,
+      "retrievable": true,
+      "sortable": false,
+      "facetable": true
+    },
+    {
+      "name": "header_3",
+      "type": "Edm.String",
+      "searchable": true,
+      "filterable": true,
+      "retrievable": true,
+      "sortable": false,
+      "facetable": true
+    },
+    {
+      "name": "pozo",
+      "type": "Edm.String",
+      "searchable": true,
+      "filterable": true,
+      "retrievable": true,
+      "sortable": false,
+      "facetable": true
+    },
+    {
+      "name": "equipo",
+      "type": "Edm.String",
+      "searchable": true,
+      "filterable": true,
+      "retrievable": true,
+      "sortable": false,
+      "facetable": true
+    },
+    {
+      "name": "fecha",
+      "type": "Edm.DateTimeOffset",
+      "searchable": false,
+      "filterable": true,
+      "retrievable": true,
+      "sortable": true,
+      "facetable": true
+    },
+    {
+      "name": "yacimiento",
+      "type": "Edm.String",
+      "searchable": true,
+      "filterable": true,
+      "retrievable": true,
+      "sortable": false,
+      "facetable": true
+    },
+    {
+      "name": "tipo_documento",
+      "type": "Edm.String",
+      "searchable": false,
+      "filterable": true,
+      "retrievable": true,
+      "sortable": false,
+      "facetable": true
+    },
+    {
+      "name": "text_vector",
+      "type": "Collection(Edm.Single)",
+      "searchable": true,
+      "filterable": false,
+      "retrievable": false,
+      "sortable": false,
+      "facetable": false,
+      "dimensions": 1536,
+      "vectorSearchProfile": "vector-profile-1536"
+    },
+    {
+      "name": "metadata_json",
+      "type": "Edm.String",
+      "searchable": false,
+      "filterable": false,
+      "retrievable": true,
+      "sortable": false,
+      "facetable": false
+    }
+  ],
+  "scoringProfiles": [],
+  "suggesters": [],
+  "analyzers": [],
+  "tokenizers": [],
+  "tokenFilters": [],
+  "charFilters": [],
+  "normalizers": [],
+  "semantic": {
+    "defaultConfiguration": "neuro-semantic-config",
+    "configurations": [
+      {
+        "name": "neuro-semantic-config",
+        "prioritizedFields": {
+          "titleField": {
+            "fieldName": "header_1"
+          },
+          "prioritizedContentFields": [
+            {
+              "fieldName": "chunk_content"
+            }
+          ],
+          "prioritizedKeywordsFields": [
+            {
+              "fieldName": "pozo"
+            },
+            {
+              "fieldName": "equipo"
+            },
+            {
+              "fieldName": "header_2"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "vectorSearch": {
+    "algorithms": [
+      {
+        "name": "hnsw-algorithm",
+        "kind": "hnsw",
+        "hnswParameters": {
+          "metric": "cosine",
+          "m": 4,
+          "efConstruction": 400,
+          "efSearch": 500
+        }
+      }
+    ],
+    "profiles": [
+      {
+        "name": "vector-profile-1536",
+        "algorithm": "hnsw-algorithm"
+      }
+    ]
+  }
+}

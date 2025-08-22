@@ -17,6 +17,7 @@ env/
 00-backup/
 enrutadores/
 .deployment
+.claude
 
 # Notebooks y scripts locales
 auxiliar.ipynb

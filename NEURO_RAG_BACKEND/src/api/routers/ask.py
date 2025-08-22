@@ -8,6 +8,8 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from api.schemas.ask import QuestionRequest, QuestionResponse
 from agents.supervisor import procesar_consulta_langgraph
+from agents.unified_rag_agent_production import process_query_production
+import os
 
 # ===== CONFIGURACIÓN DE LOGGING EXHAUSTIVO =====
 logger = logging.getLogger(__name__)
@@ -114,11 +116,22 @@ async def ask_question(request: QuestionRequest, raw_request: Request, response:
         # Medir tiempo de procesamiento del agente
         agent_start = time.time()
         
-        # Llamar a la función de procesamiento
-        answer, session_id = procesar_consulta_langgraph(
-            request.question, 
-            request.session_id or "default_session"
-        )
+        # Use unified agent if enabled in environment
+        use_unified = os.environ.get("USE_UNIFIED_AGENT", "false").lower() == "true"
+        
+        if use_unified:
+            logger.info(f"[{request_id}] Using unified production agent")
+            answer, session_id = process_query_production(
+                request.question,
+                request.session_id or "default_session",
+                force_search=False
+            )
+        else:
+            logger.info(f"[{request_id}] Using legacy supervisor agent")
+            answer, session_id = procesar_consulta_langgraph(
+                request.question,
+                request.session_id or "default_session"
+            )
         
         agent_time = time.time() - agent_start
         

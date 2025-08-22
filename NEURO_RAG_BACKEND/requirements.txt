@@ -18,7 +18,7 @@ sqlalchemy-teradata
 azure-cognitiveservices-speech
 azure-cognitiveservices-search-customsearch
 azure-identity
-azure-search-documents==11.4.0
+azure-search-documents==11.6.0b1  # Preview version for semantic search
 azure-keyvault-secrets
 azure-functions
 azurefunctions-extensions-bindings-blob
