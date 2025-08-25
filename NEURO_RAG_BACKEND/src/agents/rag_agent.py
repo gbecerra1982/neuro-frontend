@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.prebuilt import create_react_agent
-from llm.llm import llm_gpt_4o_mini
+from llm.llm import llm_gpt_4o_mini, llm_gpt_4o, llm_gpt_4_1_mini
 from workflows.states import OverallState
 from tools.rag import rag_tool
 from prompt_engineering.query_prompts import prompt_rag
@@ -17,13 +17,21 @@ from config.settings import (
 )
 from utils.util_logger import GetLogger
 import logging
- 
+import os 
 # Configurar logging adicional
 logging.basicConfig(level=logging.INFO)
 rag_logger = logging.getLogger("rag_agent")
+
+
+log_dir = os.path.join(os.getcwd(), 'data')
  
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+    print(f"Directorio creado: {log_dir}")
  
-logger = GetLogger(__name__, level=LOGLEVEL, log_file='data/app_logs.log').logger
+logger = GetLogger(__name__, level=LOGLEVEL, log_file=os.path.join(log_dir, 'app_logs.log')).logger
+ 
+# logger = GetLogger(__name__, level=LOGLEVEL, log_file='data/app_logs.log').logger
  
  
  
@@ -34,8 +42,9 @@ prompt_rag_template = ChatPromptTemplate.from_messages([
 
 
 rag_agent = create_react_agent(
-    model=llm_gpt_4o_mini,
+    model=llm_gpt_4_1_mini,
     tools=[rag_tool],
     name="rag_agent",
     prompt=prompt_rag_template,
+    debug=True
 )

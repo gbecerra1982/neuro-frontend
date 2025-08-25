@@ -1,36 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Azure OpenAI Realtime API with Avatar Support - Production</title>
-    
+    <title>Neuro - YPF</title>
+    <link rel="icon" href="{{ url_for('static', filename='image/favicon.ico') }}" type="image/x-icon">
+    <!-- FontAwesome - Carga optimizada con CSS en lugar de múltiples JS -->
+    <link link nonce="{{ csp_nonce }}" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- SDK de Azure Speech - CDN de jsdelivr -->
-    <script nonce="{{ csp_nonce }}" crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
-    
+    <script nonce="{{ csp_nonce }}" crossorigin="anonymous"
+        src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+
     <!-- Socket.IO Client Library -->
     <script nonce="{{ csp_nonce }}" src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    
+    <!-- <link rel="stylesheet" href="../static/css/input.css"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
     <!-- Script de verificación y carga con fallback mejorado -->
     <script nonce="{{ csp_nonce }}">
         // Sistema de carga robusto del SDK
         window.sdkReady = false;
-        
+
         function waitForSDK() {
             return new Promise((resolve, reject) => {
                 let checkCount = 0;
                 const maxChecks = 30;
-                
+
                 const checkInterval = setInterval(() => {
                     checkCount++;
-                    
+
                     if (typeof window.SpeechSDK !== 'undefined') {
                         clearInterval(checkInterval);
                         console.log('✅ Azure Speech SDK loaded successfully');
-                        
+
                         const version = window.SpeechSDK.SDKVersion || window.SpeechSDK.Version || 'Unknown';
                         console.log('SDK Version:', version);
-                        
+
                         window.sdkReady = true;
                         resolve(true);
                     } else if (checkCount >= maxChecks) {
@@ -43,7 +50,7 @@
                 }, 500);
             });
         }
-        
+
         // Función de carga con fallback mejorada
         async function loadSDKWithFallback() {
             // Primero intentar con el SDK ya cargado
@@ -53,29 +60,29 @@
             } catch (error) {
                 console.error('Initial SDK load failed:', error);
             }
-            
+
             // Intentar con URLs alternativas
             const sdkUrls = [
                 'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.34.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js',
                 '/static/speech-sdk.min.js'  // Fallback local
             ];
-            
+
             for (const url of sdkUrls) {
                 try {
                     console.log(`🔄 Attempting to load SDK from: ${url}`);
-                    
+
                     // Remover script anterior si existe
                     const existingScript = document.querySelector('script[src*="speech-sdk"]');
                     if (existingScript) {
                         existingScript.remove();
                     }
-                    
+
                     // Crear nuevo script
                     await new Promise((resolve, reject) => {
                         const script = document.createElement('script');
                         script.src = url;
                         script.crossOrigin = 'anonymous';
-                        
+
                         script.onload = () => {
                             // Verificar que el SDK esté realmente cargado
                             setTimeout(() => {
@@ -88,782 +95,220 @@
                                 }
                             }, 500);
                         };
-                        
+
                         script.onerror = () => {
                             reject(new Error(`Failed to load from ${url}`));
                         };
-                        
+
                         document.head.appendChild(script);
                     });
-                    
+
                     return true;
                 } catch (error) {
                     console.warn(`Failed to load SDK from ${url}:`, error);
                     continue;
                 }
             }
-            
+
             throw new Error('Failed to load SDK from all sources');
         }
-        
+
         // Iniciar carga del SDK inmediatamente
         window.sdkLoadPromise = loadSDKWithFallback();
     </script>
-    
+
+    <!-- CSS mínimo solo para casos específicos que no se pueden hacer con Tailwind -->
     <style nonce="{{ csp_nonce }}">
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #0a1428 0%, #1a2744 50%, #2a3754 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .container {
-            text-align: center;
-            max-width: 1200px;
-            width: 100%;
-        }
-
-        .header {
-            margin-bottom: 40px;
-        }
-
-        .logo {
-            background: linear-gradient(135deg, #007AFF 0%, #0056CC 100%);
-            color: white;
-            padding: 16px 32px;
-            border-radius: 16px;
-            font-weight: 800;
-            font-size: 32px;
-            letter-spacing: 2px;
-            margin-bottom: 20px;
-            display: inline-block;
-            box-shadow: 0 8px 32px rgba(0, 122, 255, 0.4);
-        }
-
-        .title {
-            font-size: 28px;
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-
-        .subtitle {
-            color: #FF6B35;
-            font-weight: 600;
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-
-        .proxy-indicator {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #00FF64;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 11px;
-            font-family: 'Courier New', monospace;
-            border: 1px solid rgba(0, 255, 100, 0.3);
-            z-index: 999;
-        }
-
-        .proxy-indicator.connected {
-            color: #00FF64;
-            border-color: rgba(0, 255, 100, 0.5);
-        }
-
-        .proxy-indicator.disconnected {
-            color: #FF3B30;
-            border-color: rgba(255, 59, 48, 0.5);
-        }
-
-        .system-status {
-            background: rgba(0, 255, 100, 0.1);
-            border: 2px solid rgba(0, 255, 100, 0.3);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            text-align: left;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .system-status h3 {
-            color: #00FF64;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-
-        .system-status ul {
-            font-size: 14px;
-            color: #B0C4DE;
-            line-height: 1.6;
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .system-status li {
-            margin-bottom: 5px;
-            padding-left: 20px;
-            position: relative;
-        }
-
-        .system-status li:before {
-            content: "•";
-            color: #00FF64;
-            position: absolute;
-            left: 0;
-        }
-
-        .description {
-            color: #B0C4DE;
-            font-size: 16px;
-            max-width: 700px;
-            margin: 0 auto;
-            line-height: 1.6;
-        }
-
-        .main-interface {
-            display: flex;
-            gap: 40px;
-            align-items: flex-start;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin: 40px 0;
-        }
-
-        .avatar-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .avatar-container {
-            width: 640px; 
-            height: 480px;
-            border-radius: 24px;
-            background: linear-gradient(135deg, #1a2744 0%, #2a3754 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 100px;
-            margin-bottom: 20px;
-            box-shadow: 0 0 40px rgba(0, 122, 255, 0.3);
-            transition: all 0.3s ease;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .avatar-video-container {
-            width: 640px; 
-            height: 480px;
-            border-radius: 24px;
-            overflow: hidden;
-            display: none;
-            box-shadow: 0 0 40px rgba(255, 107, 53, 0.4);
-            background: #000;
-            position: relative;
-        }
-
-        #avatarVideo {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .avatar-container.listening {
-            animation: pulse-listening 1.5s infinite;
-            box-shadow: 0 0 60px rgba(0, 255, 100, 0.6);
-            border-color: rgba(0, 255, 100, 0.5);
-        }
-
-        .avatar-container.thinking {
-            animation: pulse-thinking 0.8s infinite;
-            box-shadow: 0 0 60px rgba(255, 193, 7, 0.6);
-            border-color: rgba(255, 193, 7, 0.5);
-        }
-
-        .avatar-container.speaking {
-            animation: pulse-speaking 1s infinite;
-            box-shadow: 0 0 60px rgba(255, 107, 53, 0.8);
-            border-color: rgba(255, 107, 53, 0.5);
-        }
-
-        .avatar-container.vad-active {
-            animation: pulse-vad 0.6s infinite;
-            box-shadow: 0 0 80px rgba(255, 20, 147, 0.8);
-            border-color: rgba(255, 20, 147, 0.6);
-        }
-
-        @keyframes pulse-listening {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-        }
-
-        @keyframes pulse-thinking {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.03); }
-        }
-
-        @keyframes pulse-speaking {
-            0%, 100% { transform: scale(1); }
-            25% { transform: scale(1.05); }
-            75% { transform: scale(1.02); }
-        }
-
-        @keyframes pulse-vad {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.06); }
-        }
-
-        .avatar-placeholder {
-            font-size: 120px;
-            color: rgba(255, 255, 255, 0.3);
-        }
-
-        .control-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .control-button {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            font-size: 48px;
-            background: linear-gradient(135deg, #00FF64 0%, #00CC51 100%);
-            color: white;
-            transition: all 0.15s ease;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .control-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
-        }
-
-        .control-button:active {
-            transform: scale(0.95);
-        }
-
-        .control-button.active {
-            background: linear-gradient(135deg, #FF3B30 0%, #CC2E24 100%);
-            animation: button-active 1s infinite;
-        }
-
-        .control-button:disabled {
-            background: linear-gradient(135deg, #666 0%, #444 100%);
-            cursor: not-allowed;
-            opacity: 0.5;
-        }
-
-        @keyframes button-active {
-            0%, 100% { box-shadow: 0 12px 40px rgba(255, 59, 48, 0.4); }
-            50% { box-shadow: 0 16px 48px rgba(255, 59, 48, 0.6); }
-        }
-
-        .status {
-            margin: 20px 0;
-            font-weight: 600;
-            color: #00FF64;
-            font-size: 20px;
-            min-height: 30px;
-        }
-
-        .status.error {
-            color: #FF3B30;
-        }
-
-        .metrics-panel {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 15px;
-            margin: 15px 0;
-            font-size: 14px;
-            color: #B0C4DE;
-            text-align: left;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .metric-item {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 8px;
-            border-radius: 8px;
-        }
-
-        .metric-label {
-            color: #8B95A7;
-            font-size: 12px;
-            margin-bottom: 4px;
-        }
-
-        .metric-value {
-            color: #FFFFFF;
-            font-weight: 600;
-            font-size: 16px;
-        }
-
-        .conversation-section {
-            max-width: 900px;
-            margin: 30px auto;
-        }
-
-        .conversation-header {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #B0C4DE;
-        }
-
-        .conversation {
-            max-height: 400px;
-            overflow-y: auto;
-            text-align: left;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .message {
-            margin: 15px 0;
-            padding: 15px 20px;
-            border-radius: 20px;
-            max-width: 85%;
-            word-wrap: break-word;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message.user {
-            background: linear-gradient(135deg, rgba(0, 122, 255, 0.3) 0%, rgba(0, 122, 255, 0.1) 100%);
-            margin-left: auto;
-            margin-right: 0;
-            border-bottom-right-radius: 5px;
-        }
-
-        .message.assistant {
-            background: linear-gradient(135deg, rgba(255, 107, 53, 0.3) 0%, rgba(255, 107, 53, 0.1) 100%);
-            margin-right: auto;
-            margin-left: 0;
-            border-bottom-left-radius: 5px;
-        }
-
-        .message.system {
-            background: linear-gradient(135deg, rgba(255, 193, 7, 0.3) 0%, rgba(255, 193, 7, 0.1) 100%);
-            margin: 0 auto;
-            border-radius: 15px;
-            font-size: 14px;
-            max-width: 90%;
-        }
-
-        .message strong {
-            color: #FFD700;
-            display: block;
-            margin-bottom: 5px;
-            font-size: 14px;
-            font-weight: 700;
-        }
-
-        .tech-info {
-            margin-top: 40px;
-            padding: 25px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            font-size: 14px;
-            color: #B0C4DE;
-            backdrop-filter: blur(10px);
-        }
-
-        .tech-badges {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 15px;
-        }
-
-        .tech-badge {
-            background: rgba(0, 122, 255, 0.2);
-            color: #87CEEB;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .tech-badge.active {
-            background: rgba(0, 255, 100, 0.2);
-            color: #90EE90;
-        }
-
-        .error-message {
-            color: #FF6B6B;
-            background: rgba(255, 107, 107, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            border-left: 4px solid #FF6B6B;
-        }
-
-        .debug-panel {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.95);
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 12px;
-            color: #90EE90;
-            max-width: 450px;
-            max-height: 600px;
-            overflow-y: auto;
-            display: none;
-            border: 1px solid rgba(0, 255, 100, 0.3);
-            font-family: 'Courier New', monospace;
-            z-index: 1000;
-        }
-
-        .debug-panel.show {
-            display: block;
-        }
-
-        .debug-panel h4 {
-            color: #00FF64;
-            margin-bottom: 10px;
-            border-bottom: 1px solid rgba(0, 255, 100, 0.2);
-            padding-bottom: 5px;
-        }
-
-        .debug-entry {
-            margin-bottom: 5px;
-            padding: 3px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .debug-time {
-            color: #666;
-        }
-
-        .debug-type {
-            font-weight: bold;
-            margin: 0 5px;
-        }
-
-        .debug-message {
-            color: #E0E0E0;
-        }
-
-        .avatar-metrics {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-family: 'Courier New', monospace;
-            border: 1px solid rgba(0, 255, 100, 0.3);
-            display: none;
-            z-index: 1000;
-        }
-
-        .avatar-metrics.show {
-            display: block;
-        }
-
-        .controls-group {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 20px;
-        }
-
-        .secondary-button {
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s ease;
-        }
-
-        .secondary-button:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .loading-indicator {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 30px;
-            border-radius: 15px;
-            border: 2px solid rgba(0, 255, 100, 0.3);
-            z-index: 2000;
-        }
-
-        .loading-indicator.show {
-            display: block;
-        }
-
-        .loading-spinner {
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top: 4px solid #00FF64;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        .loading-text {
-            color: #00FF64;
-            text-align: center;
-        }
-
-        .control-button-text-container {
-            color: #B0C4DE;
-            font-size: 14px;
-            max-width: 220px;
-            text-align: center;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .main-interface {
-                flex-direction: column;
-                gap: 20px;
-            }
-
-            .avatar-container,
-            .avatar-video-container {
-                width: 100%;
-                max-width: 400px;
-                height: 300px;
-            }
-
-            .control-button {
-                width: 100px;
-                height: 100px;
-                font-size: 40px;
-            }
-
-            .logo {
-                font-size: 24px;
-                padding: 12px 24px;
-            }
-
-            .title {
-                font-size: 24px;
-            }
-
-            .debug-panel {
-                position: relative;
-                top: auto;
-                right: auto;
-                margin: 20px 0;
-                max-width: 100%;
-            }
-
-            .avatar-metrics {
-                position: relative;
-                bottom: auto;
-                left: auto;
-                margin: 20px 0;
-            }
-        }
-
+        /* Scrollbar personalizada global */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 0.3rem;
+            height: 0.2rem;
         }
 
         ::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 4px;
+            margin: 0.25rem;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 0.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Scrollbar específico para el chat */
+        #conversation::-webkit-scrollbar {
+            width: 0.3rem;
+        }
+
+        #conversation::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 0.2rem;
+            margin: 0.5rem 0;
+        }
+
+        #conversation::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 0.2rem;
+        }
+
+        #conversation::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.6);
         }
     </style>
 </head>
-<body>
+
+<body
+    class="font-sans bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white min-h-screen flex flex-col items-center justify-center p-5">
     <input type="hidden" id="clientId" value="{{ client_id }}">
-    
+
     <!-- Proxy Status Indicator -->
-    <div class="proxy-indicator disconnected" id="proxyIndicator">
-        Proxy: <span id="proxyStatus">Disconnected</span>
+    <div class="fixed top-2.5 right-2.5 bg-black/80 px-2.5 py-1.5 rounded-full font-mono text-xs border border-red-500/50 z-[999] "
+        id="proxyIndicator">
+        <span id="proxyStatus" class="text-red-500 bg-red500/10 w-16 h-16 font-bold">X</span>
     </div>
-
+    <!-- image neuro -->
+    <div class="fixed bottom-2.5 right-2.5 w-35 h-12 ">
+        <img src="{{ url_for('static', filename='image/Logo-Neuro (Blanco).png') }}"
+            class="w-full h-full md:block hidden" alt="logo neuro">
+    </div>
     <!-- Loading Indicator -->
-    <div class="loading-indicator" id="loadingIndicator">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">Initializing Azure Speech SDK...</div>
+    <div
+        class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/90 p-8 rounded-2xl border-2 border-green-400/30 z-[2000]">
+        <div class="border-4 border-white/10 border-t-green-400 rounded-full w-12 h-12 animate-spin mx-auto mb-5"></div>
+        <div class="text-green-400 text-center">Initializing Azure Speech SDK...</div>
     </div>
 
-    <div class="container">
-        <div class="header">
-            <div class="logo">AZURE REALTIME API</div>
-            <div class="title">Production-Ready Voice Assistant with Avatar Support</div>
-            <div class="subtitle">Azure OpenAI Realtime API + Azure Speech Avatar</div>
-            <div class="system-status">
-                <h3>System Configuration</h3>
-                <ul>
-                    <li>WebSocket endpoint: /openai/realtime</li>
-                    <li>API version: 2025-04-01-preview</li>
-                    <li>Audio processing: 24kHz PCM16 with resampling</li>
-                    <li>Voice activity detection: Server-side VAD</li>
-                    <li>Avatar support: Azure Speech Avatar (Lisa)</li>
-                    <li>Function calling: Enabled with retry logic</li>
-                    <li>SDK Status: <span id="sdkStatus" style="color: #FFC107;">Loading...</span></li>
-                </ul>
-            </div>
-            <div class="description">
-                Enterprise-grade implementation of Azure OpenAI Realtime API with Azure Speech Avatar support,
-                automatic reconnection, quality monitoring, and comprehensive error handling.
-            </div>
+    <!-- image ypf -->
+    <div class="mb-4">
+        <div class=" fixed top-2.5 left-2.5 justify-start items-start">
+            <img src="{{ url_for('static', filename='image/ypf-logo.png') }}" class="w-30 h-10" alt="logo YPF">
         </div>
+    </div>
+    <div class="container w-full h-full">
 
-        <div class="main-interface">
-            <div class="avatar-section">
-                <div class="avatar-container" id="avatarContainer">
-                    <div class="avatar-placeholder" id="avatarPlaceholder">AI</div>
+        <div class="flex  items-start w-3/4 mx-auto justify-center flex-wrap  md:flex-row flex-col md:gap-10 gap-5">
+            <div class="flex flex-col items-center m-auto w-1/2">
+                <div class=" h-5/2  aspect-[4/3] w-full max-w-md min-w-md h-75 rounded-3xl bg-gradient-to-br from-slate-800 to-slate-700 flex items-center justify-center text-8xl mb-5 shadow-2xl shadow-blue-500/30 transition-all duration-300 border-2 border-white/10 relative overflow-hidden"
+                    id="avatarContainer">
+                    <div class="md:text-9xl text-5xl text-black/30 w-full h-full flex items-center justify-center bg-white"
+                        id="avatarPlaceholder">AI</div>
                 </div>
-                <div class="avatar-video-container" id="avatarVideoContainer">
+                <div class=""  h-5/2 aspect-[4/3] w-full max-w-md h-75 rounded-3xl overflow-hidden  shadow-2xl shadow-orange-500/40 bg-black relative block" id="avatarVideoContainer">
                     <video id="avatarVideo" autoplay playsinline></video>
                 </div>
-                <div class="status" id="status">Initializing SDK...</div>
-                
-                <div class="metrics-panel">
-                    <div class="metrics-grid">
-                        <div class="metric-item">
-                            <div class="metric-label">Connection</div>
-                            <div class="metric-value" id="connectionStatus">Idle</div>
+                <div class="my-5 font-semibold text-green-400 text-xl min-h-[30px] hidden" id="status">Iniciando SDK...
+                </div>
+
+                <div
+                    class="bg-white/5 border border-white/10 rounded-xl p-4 my-4 text-sm text-slate-300 text-left hidden">
+                    <div class="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5 mt-2.5">
+                        <div class="bg-black/30 p-2 rounded-lg">
+                            <div class="text-gray-400 text-xs mb-1">Conexión</div>
+                            <div class="text-white font-semibold text-base" id="connectionStatus">Idle</div>
                         </div>
-                        <div class="metric-item">
-                            <div class="metric-label">VAD Status</div>
-                            <div class="metric-value" id="vadStatus">Inactive</div>
+                        <div class="bg-black/30 p-2 rounded-lg">
+                            <div class="text-gray-400 text-xs mb-1">Estado VAD</div>
+                            <div class="text-white font-semibold text-base" id="vadStatus">Inactive</div>
                         </div>
-                        <div class="metric-item">
-                            <div class="metric-label">Audio Quality</div>
-                            <div class="metric-value" id="audioQuality">--</div>
+                        <div class="bg-black/30 p-2 rounded-lg">
+                            <div class="text-gray-400 text-xs mb-1">Calidad de Audio</div>
+                            <div class="text-white font-semibold text-base" id="audioQuality">--</div>
                         </div>
-                        <div class="metric-item">
-                            <div class="metric-label">Avatar</div>
-                            <div class="metric-value" id="avatarStatus">Disconnected</div>
+                        <div class="bg-black/30 p-2 rounded-lg">
+                            <div class="text-gray-400 text-xs mb-1">Avatar</div>
+                            <div class="text-white font-semibold text-base" id="avatarStatus">Disconnected</div>
                         </div>
-                        <div class="metric-item">
-                            <div class="metric-label">Latency</div>
-                            <div class="metric-value" id="latency">-- ms</div>
+                        <div class="bg-black/30 p-2 rounded-lg">
+                            <div class="text-gray-400 text-xs mb-1">Latencia</div>
+                            <div class="text-white font-semibold text-base" id="latency">-- ms</div>
                         </div>
-                        <div class="metric-item">
-                            <div class="metric-label">Session Time</div>
-                            <div class="metric-value" id="sessionTime">00:00</div>
+                        <div class="bg-black/30 p-2 rounded-lg">
+                            <div class="text-gray-400 text-xs mb-1">Tiempo de Sesión</div>
+                            <div class="text-white font-semibold text-base" id="sessionTime">00:00</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="control-section">
-                <button class="control-button" id="controlButton" disabled>
-                    <span id="controlButtonIcon">🎤</span>
+            <div class="justify-center m-auto  flex flex-col items-center gap-5">
+                <button
+                    class="w-20 h-20 rounded-full border-none cursor-pointer text-5xl md:text-5xl text-4xl bg-gradient-to-br from-primary to-secondary text-white transition-all duration-150 shadow-2xl shadow-black/30 relative overflow-hidden hover:scale-105 active:scale-95 disabled:bg-gradient-to-br disabled:from-gray-600 disabled:to-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    id="controlButton" disabled>
+                    <span id="controlButtonIcon"><i class="fa-solid fa-microphone"></i></span>
                 </button>
-                <div class="control-button-text-container">
-                    <span id="controlButtonText">Initializing SDK...</span>
+                <div class="text-slate-300 text-sm max-w-[220px] text-center">
+                    <span id="controlButtonText">Iniciando SDK...</span>
                 </div>
-                <div class="controls-group">
-                    <button class="secondary-button" id="debugPanelBtn">Debug Console</button>
-                    <button class="secondary-button" id="avatarMetricsBtn">Avatar Metrics</button>
-                    <button class="secondary-button" id="clearConversationBtn">Clear Chat</button>
-                    <button class="secondary-button" id="testAvatarBtn">Test Avatar</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="conversation-section">
-            <div class="conversation-header">Conversation Log</div>
-            <div class="conversation" id="conversation">
-                <div class="message system">
-                    <strong>System:</strong>
-                    Initializing Azure Speech SDK and system components...
+                <div class="flex gap-2.5 justify-center mt-5">
+                    <button
+                        class="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg cursor-pointer text-xs transition-all duration-200 hover:bg-white/20 hover:border-white/30 hidden"
+                        id="debugPanelBtn">Consola de Debug</button>
+                    <button
+                        class="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg cursor-pointer text-xs transition-all duration-200 hover:bg-white/20 hover:border-white/30"
+                        id="avatarMetricsBtn">Métricas de Avatar</button>
+                    <button
+                        class="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg cursor-pointer text-xs transition-all duration-200 hover:bg-white/20 hover:border-white/30"
+                        id="clearConversationBtn">Limpiar Chat</button>
+                    <button
+                        class="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg cursor-pointer text-xs transition-all duration-200 hover:bg-white/20 hover:border-white/30"
+                        id="testAvatarBtn">Test Avatar</button>
                 </div>
             </div>
         </div>
 
-        <div class="tech-info">
+        <div class="max-w-4xl mx-auto my-8">
+            <div class="text-xl font-semibold mb-4 text-slate-300">Chat</div>
+            <div class="max-h-[10rem] overflow-y-auto text-left bg-white/5 rounded-2xl pl-5 pr-4 py-5 backdrop-blur-sm border border-white/10"
+                id="conversation">
+                <div
+                    class="my-4 px-5 py-4 max-w-[90%] break-words fade-in bg-gradient-to-br from-yellow-500/30 to-yellow-500/10 mx-auto rounded-2xl text-sm">
+                    <strong class="text-yellow-300 block mb-1 text-sm font-bold">Neuro:</strong>
+                    Inicializando Azure Speech SDK y componentes del sistema...
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-10 p-6 bg-white/5 rounded-2xl text-sm text-slate-300 backdrop-blur-sm hidden">
             <strong>Technical Implementation:</strong><br>
             Production-ready Azure OpenAI Realtime API with Azure Speech Avatar, automatic reconnection,
             comprehensive error handling, and performance monitoring.
-            <div class="tech-badges">
-                <span class="tech-badge" id="badge-realtime">Azure OpenAI Realtime</span>
-                <span class="tech-badge" id="badge-avatar">Azure Speech Avatar</span>
-                <span class="tech-badge active">24kHz Audio Resampling</span>
-                <span class="tech-badge active">Server VAD</span>
-                <span class="tech-badge active">Auto-Reconnect</span>
-                <span class="tech-badge active">Quality Monitoring</span>
-                <span class="tech-badge">Function Calling</span>
-                <span class="tech-badge">Error Recovery</span>
+            <div class="flex gap-2.5 justify-center flex-wrap mt-4">
+                <span class="bg-blue-500/20 text-sky-300 px-3 py-1 rounded-full text-xs font-semibold"
+                    id="badge-realtime">Azure OpenAI Realtime</span>
+                <span class="bg-blue-500/20 text-sky-300 px-3 py-1 rounded-full text-xs font-semibold"
+                    id="badge-avatar">Azure Speech Avatar</span>
+                <span class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">24kHz Audio
+                    Resampling</span>
+                <span class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">Server
+                    VAD</span>
+                <span
+                    class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">Auto-Reconnect</span>
+                <span class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">Quality
+                    Monitoring</span>
+                <span class="bg-blue-500/20 text-sky-300 px-3 py-1 rounded-full text-xs font-semibold">Function
+                    Calling</span>
+                <span class="bg-blue-500/20 text-sky-300 px-3 py-1 rounded-full text-xs font-semibold">Error
+                    Recovery</span>
             </div>
         </div>
     </div>
 
     <!-- Debug Panel -->
-    <div class="debug-panel" id="debugPanel">
-        <h4>Debug Console</h4>
+    <div class="fixed md:top-5 md:right-5 top-auto right-auto  my-5  bg-black/95 p-4 rounded-lg text-xs text-green-300 max-w-md max-h-[600px] overflow-y-auto hidden border border-green-400/30 font-mono z-[1000]"
+        id="debugPanel">
+        <h4 class="text-green-400 mb-2.5 border-b border-green-400/20 pb-1">Debug Console</h4>
         <div id="debugLog"></div>
     </div>
 
     <!-- Avatar Metrics Panel -->
-    <div class="avatar-metrics" id="avatarMetricsPanel">
+    <div class="fixed md:bottom-5 md:left-5 bottom-auto left-auto  my-5 bg-black/90 text-white p-3 rounded-lg text-xs font-mono border border-green-400/30 hidden z-[1000]"
+        id="avatarMetricsPanel">
         <strong>Avatar Performance</strong><br>
         <div id="avatarMetricsContent">
             FPS: --<br>
@@ -875,7 +320,6 @@
         </div>
     </div>
 
-    <!-- Tool Call Synchronization Fix -->
     <script src="/static/fix_tool_call_sync.js"></script>
 
     <script nonce="{{ csp_nonce }}">
@@ -1168,9 +612,12 @@
                                     // Mostrar video
                                     if (videoContainer) {
                                         videoContainer.style.display = 'block';
+                                        videoContainer.classList.remove('hidden');
                                     }
                                     if (avatarContainer) {
-                                        avatarContainer.style.display = 'none';
+                                        // avatarContainer.style.display = 'none';
+                                        avatarContainer.classList.add('hidden');
+                                        avatarContainer.classList.remove('block');
                                     }
                                     
                                     // Reproducir
@@ -1398,7 +845,7 @@
             try {
                 // Show loading indicator
                 if (loadingIndicator) {
-                    loadingIndicator.classList.add('show');
+                    loadingIndicator.classList.add('hidden');
                 }
                 
                 log('Waiting for Azure Speech SDK to load...', 'INFO');
@@ -1417,12 +864,12 @@
                 
                 // Update UI
                 if (sdkStatusElement) {
-                    sdkStatusElement.textContent = `Ready (v${sdkVersion})`;
+                    sdkStatusElement.textContent = `Listo (v${sdkVersion})`;
                     sdkStatusElement.style.color = '#00FF64';
                 }
                 
                 if (statusElement) {
-                    statusElement.textContent = 'System ready - Click to start';
+                    statusElement.textContent = 'Sistema listo para usar - haga click para comenzar';
                 }
                 
                 if (controlButton) {
@@ -1430,43 +877,47 @@
                 }
                 
                 if (controlButtonText) {
-                    controlButtonText.textContent = 'Press to start voice conversation';
+                    controlButtonText.textContent = 'Pulsa para iniciar la conversación';
                 }
                 
                 // Update badges
-                document.getElementById('badge-avatar').classList.add('active');
+                // document.getElementById('badge-avatar').classList.add('active');
+                document.getElementById('badge-avatar').classList.remove('bg-blue-500/20', 'text-sky-300');
+                document.getElementById('badge-avatar').classList.add('bg-green-500/20', 'text-green-300');
+
                 
                 // Add system message
                 addMessage('system', 'Azure Speech SDK loaded successfully. System ready for interaction.');
                 
                 return true;
                 
-            } catch (error) {
+            }  catch (error) {
                 log(`Failed to initialize application: ${error.message}`, 'ERROR');
-                
+
                 // Update UI for error state
                 if (sdkStatusElement) {
-                    sdkStatusElement.textContent = 'Failed to load';
+                    sdkStatusElement.textContent = 'Error al cargar';
                     sdkStatusElement.style.color = '#FF3B30';
                 }
-                
+
                 if (statusElement) {
-                    statusElement.textContent = 'SDK load failed - Please refresh';
-                    statusElement.classList.add('error');
+                    statusElement.textContent = 'Error al cargar - Por favor, actualiza la página';
+                    statusElement.classList.remove('text-green-400');
+                    statusElement.classList.add('text-red-500');
                 }
-                
+
                 if (controlButtonText) {
-                    controlButtonText.textContent = 'SDK load failed - Refresh page';
+                    controlButtonText.textContent = 'Error al cargar - Actualiza la página';
                 }
-                
-                addMessage('system', `Error: ${error.message}. Please refresh the page to try again.`);
-                
+
+                addMessage('system', `Error: ${error.message}. Por favor, actualiza la página para intentar nuevamente.`);
+
                 return false;
                 
             } finally {
                 // Hide loading indicator
                 if (loadingIndicator) {
-                    loadingIndicator.classList.remove('show');
+                    loadingIndicator.classList.add('hidden');
                 }
             }
         }
@@ -1478,32 +929,34 @@
         async function initializeSystem() {
             try {
                 log('Initializing Azure OpenAI Realtime system', 'INFO');
-                updateStatus('Initializing system...');
+                updateStatus('Inicializando sistema...');
                 
                 const configResponse = await fetch('/api/voice-live-config');
                 if (!configResponse.ok) {
-                    throw new Error('Failed to load configuration from backend');
+                    throw new Error('Error al cargar la configuración desde el backend');
                 }
                 
                 config = await configResponse.json();
-                log('Configuration loaded from backend', 'SUCCESS', config);
+                log('Configuración cargada desde el backend', 'SUCCESS', config);
                 
-                document.getElementById('badge-realtime').classList.add('active');
+                document.getElementById('badge-realtime').classList.remove('bg-blue-500/20', 'text-sky-300');
+                document.getElementById('badge-realtime').classList.add('bg-green-500/20', 'text-green-300');
+
+                updateStatus('Sistema inicializado');
                 
-                updateStatus('System initialized');
                 return true;
                 
             } catch (error) {
-                log(`Initialization failed: ${error.message}`, 'ERROR');
-                showError(`Initialization error: ${error.message}`);
+                log(`Error al inicializar: ${error.message}`, 'ERROR');
+                showError(`Error al inicializar: ${error.message}`);
                 return false;
             }
         }
         
         async function connectToRealtimeAPI() {
             try {
-                updateStatus('Connecting to Azure OpenAI Realtime...');
-                log('Establishing connection via Socket.IO proxy', 'PROXY');
+                updateStatus('Conectando a Azure OpenAI Realtime...');
+                log('Estableciendo conexión via Socket.IO proxy', 'PROXY');
                 
                 const clientId = document.getElementById('clientId').value;
                 
@@ -1516,8 +969,8 @@
                 // Socket.IO connection events
                 socket.on('connect', () => {
                     log('Socket.IO connected, establishing Realtime proxy', 'PROXY');
-                    updateProxyStatus('Socket.IO Connected', true);
-                    
+                    updateProxyStatus('✓', true);
+
                     // Request Realtime API connection through proxy
                     socket.emit('realtime_connect', {
                         client_id: clientId
@@ -1526,7 +979,7 @@
                 
                 socket.on('disconnect', () => {
                     log('Socket.IO disconnected', 'PROXY');
-                    updateProxyStatus('Disconnected', false);
+                    updateProxyStatus('X', false);
                     realtimeConnected = false;
                     sessionActive = false;
                     updateUI('idle');
@@ -1536,9 +989,9 @@
                 socket.on('realtime_connected', (data) => {
                     log('Connected to Azure OpenAI Realtime via proxy', 'SUCCESS', data);
                     realtimeConnected = true;
-                    updateStatus('Connected to Azure OpenAI Realtime');
-                    updateConnectionStatus('Connected');
-                    updateProxyStatus('Realtime Connected', true);
+                    updateStatus('Conectado a Azure OpenAI Realtime');
+                    updateConnectionStatus('Conectado');
+                    updateProxyStatus('✓', true);
                     reconnectAttempts = 0;
                     setupSession();
                 });
@@ -1554,17 +1007,17 @@
                 
                 socket.on('realtime_error', (data) => {
                     log('Realtime proxy error', 'ERROR', data);
-                    updateStatus('Connection error');
+                    updateStatus('Error de conexión');
                     updateConnectionStatus('Error');
-                    showError(`Proxy error: ${data.error}`);
+                    showError(`Error de proxy: ${data.error}`);
                 });
                 
                 socket.on('realtime_closed', (data) => {
                     log('Realtime connection closed via proxy', 'WARNING', data);
                     realtimeConnected = false;
-                    updateStatus('Disconnected');
-                    updateConnectionStatus('Disconnected');
-                    updateProxyStatus('Realtime Disconnected', false);
+                    updateStatus('Desconectado');
+                    updateConnectionStatus('Desconectado');
+                    updateProxyStatus('X', false);
                     sessionActive = false;
                     updateUI('idle');
                 });
@@ -1592,15 +1045,27 @@
                 statusText.textContent = status;
             }
             
-            if (indicator) {
+             if (indicator) {
+                const statusSpan = indicator.querySelector('#proxyStatus');
                 if (connected) {
-                    indicator.classList.remove('disconnected');
-                    indicator.classList.add('connected');
+                    indicator.classList.remove('border-red-500/50');
+                    indicator.classList.add('border-green-400/50');
+                    if (statusSpan) {
+                        statusSpan.classList.remove('text-red-500');
+                        statusSpan.classList.add('text-green-400');
+                        statusSpan.textContent = '✓';
+                    }
                 } else {
-                    indicator.classList.remove('connected');
-                    indicator.classList.add('disconnected');
+                    indicator.classList.remove('border-green-400/50');
+                    indicator.classList.add('border-red-500/50');
+                    if (statusSpan) {
+                        statusSpan.classList.remove('text-green-400');
+                        statusSpan.classList.add('text-red-500');
+                        statusSpan.textContent = 'x';
+                    }
                 }
             }
+
         }
         
         function setupSession() {
@@ -1627,7 +1092,7 @@
                     COMPORTAMIENTO MEJORADO:
                     - Al comienzo de sesion siempre ofrece un saludo con amabilidad y acento argentino
                     - Para preguntas específicas sobre YPF (equipos, pozos, workover, datos técnicos, procedimientos, sistemas):
-                    1. PRIMERO responde amablemente: "¡Dale! Te busco esa información de YPF al toque..."
+                    1. PRIMERO responde amablemente.
                     2. DESPUÉS usa la función 'neuro_rag' para obtener datos actualizados
                     3. FINALMENTE responde con la información obtenida
 
@@ -1636,11 +1101,11 @@
                     - Sé consciente de las interrupciones y manejá la conversación de forma natural
                     
                     EJEMPLOS:
-                    - "Hola" → Respuesta directa: "¡Che! ¿Cómo andás? Soy Meg, acá para ayudarte con todo lo de YPF"
+                    - "Hola" → Respuesta directa: Soy Meg, acá para ayudarte con todo lo de YPF"
                     - "¿Qué tal el clima?" → Esta pregunta no se encuentra dentro del alcance permitido
                     - "Datos del pozo X" → "¡Perfecto! Déjame consultar los datos del pozo en el sistema..." + function call
                     
-                    TONO: Amigable, argentino, usando expresiones como "che", "dale", "al toque", "bárbaro", etc.
+                    TONO: Amigable, argentino. 
                     Nunca dejes al usuario esperando en silencio - siempre da alguna respuesta inmediata antes de buscar información específica.`,
                     voice: "alloy",
                     turn_detection: {
@@ -1750,10 +1215,10 @@
         // WEBSOCKET EVENT HANDLERS (for proxy messages)
         // ================================
         
-        function handleWebSocketOpen() {
+         function handleWebSocketOpen() {
             log('WebSocket connection established', 'SUCCESS');
-            updateStatus('Connected to Azure OpenAI Realtime');
-            updateConnectionStatus('Connected');
+            updateStatus('Conectado a Azure OpenAI Realtime');
+            updateConnectionStatus('Conectado');
             reconnectAttempts = 0;
             setupSession();
         }
@@ -1769,14 +1234,14 @@
 
         function handleWebSocketError(error) {
             log('WebSocket error occurred', 'ERROR', error);
-            updateStatus('Connection error');
+            updateStatus('Error de conexión');
             updateConnectionStatus('Error');
         }
 
         function handleWebSocketClose(event) {
             log(`WebSocket closed: Code ${event.code}`, 'WARNING');
-            updateStatus('Disconnected');
-            updateConnectionStatus('Disconnected');
+            updateStatus('Desconectado');
+            updateConnectionStatus('Desconectado');
             sessionActive = false;
             updateUI('idle');
         }
@@ -1787,7 +1252,7 @@
         
         async function startAudioCapture() {
             try {
-                updateStatus('Starting audio capture...');
+                updateStatus('Iniciando Captura de Audio...');
                 log('Requesting microphone access', 'AUDIO');
                 
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -2418,7 +1883,8 @@
             const statusElement = document.getElementById('status');
             if (statusElement) {
                 statusElement.textContent = message;
-                statusElement.classList.remove('error');
+                statusElement.classList.remove('text-red-500');
+                statusElement.classList.add('text-green-400');
             }
         }
         
@@ -2446,41 +1912,61 @@
         function addMessage(role, text) {
             const conversation = document.getElementById('conversation');
             if (!conversation) return;
-            
+
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${role}`;
-            
+
+            // Base classes for all messages
+            let baseClasses = 'my-4 px-5 py-4 rounded-2xl max-w-[85%] break-words fade-in';
+
+            // Role-specific classes
+            switch (role) {
+                case 'user':
+                    messageDiv.className = baseClasses + ' bg-gradient-to-br from-blue-500/30 to-blue-500/10 ml-auto mr-0 rounded-br-sm';
+                    break;
+                case 'assistant':
+                    messageDiv.className = baseClasses + ' bg-gradient-to-br from-orange-500/30 to-orange-500/10 mr-auto ml-0 rounded-bl-sm';
+                    break;
+                case 'system':
+                default:
+                    messageDiv.className = baseClasses + ' bg-gradient-to-br from-yellow-500/30 to-yellow-500/10 mx-auto rounded-2xl text-sm max-w-[90%]';
+                    break;
+            }
+
             let roleName = role === 'user' ? 'You' : role === 'assistant' ? 'Assistant' : 'System';
-            
-            messageDiv.innerHTML = `<strong>${roleName}:</strong> ${text}`;
+            let roleColor = role === 'user' ? 'text-blue-300' : role === 'assistant' ? 'text-orange-300' : 'text-yellow-300';
+
+            messageDiv.innerHTML = `<strong class="${roleColor} block mb-1 text-sm font-bold">${roleName}:</strong> ${text}`;
             conversation.appendChild(messageDiv);
             conversation.scrollTop = conversation.scrollHeight;
         }
-        
-        function showError(message) {
+
+        function showError(message, className = 'error-message') {
             const conversation = document.getElementById('conversation');
             if (conversation) {
                 const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.textContent = message;
+                errorDiv.className = `w-[90%] mx-auto bg-red-500/10 rounded-2xl mt-4 text-red-500 p-4 ${className}`
+                errorDiv.innerHTML = `<strong class="text-red-500 block mb-1 text-sm font-bold">System:</strong> ${message}`;
+                // errorDiv.textContent = message;
                 conversation.appendChild(errorDiv);
                 conversation.scrollTop = conversation.scrollHeight;
             }
-            
+
             const statusElement = document.getElementById('status');
             if (statusElement) {
+
                 statusElement.textContent = `Error: ${message}`;
-                statusElement.classList.add('error');
+                statusElement.classList.remove('text-green-400');
+                statusElement.classList.add('text-red-500');
             }
         }
-        
+
         function clearConversation() {
             const conversation = document.getElementById('conversation');
             if (conversation) {
                 conversation.innerHTML = `
-                    <div class="message system">
-                        <strong>System:</strong>
-                        Conversation cleared. Ready for new interaction.
+                    <div class="w-[90%] mx-auto bg-blue-500/10 rounded-2xl mt-4 text-blue-500 p-4">
+                        <strong block mb-1 text-sm font-bold>System:</strong><br/>
+                        Conversación borrada. Listo para nueva interacción.
                     </div>
                 `;
             }
@@ -2489,14 +1975,14 @@
         function toggleDebugPanel() {
             const panel = document.getElementById('debugPanel');
             if (panel) {
-                panel.classList.toggle('show');
+                panel.classList.toggle('hidden');
             }
         }
         
         function toggleAvatarMetrics() {
             const panel = document.getElementById('avatarMetricsPanel');
             if (panel) {
-                panel.classList.toggle('show');
+                panel.classList.toggle('hidden');
             }
         }
         
@@ -2505,45 +1991,50 @@
             const avatarPlaceholder = document.getElementById('avatarPlaceholder');
             const controlButton = document.getElementById('controlButton');
             const controlButtonIcon = document.getElementById('controlButtonIcon');
-            
+
             if (avatarContainer) {
                 avatarContainer.className = 'avatar-container';
-                
+
+                // Remove all avatar state classes first
+                avatarContainer.classList.remove('avatar-listening', 'avatar-thinking', 'avatar-speaking', 'avatar-vad-active');
+
                 switch (state) {
                     case 'listening':
-                        avatarContainer.classList.add('listening');
+                        avatarContainer.classList.add('avatar-listening');
                         if (avatarPlaceholder) avatarPlaceholder.textContent = '👂';
                         break;
-                        
+
                     case 'vad-active':
-                        avatarContainer.classList.add('vad-active');
+                        avatarContainer.classList.add('avatar-vad-active');
                         if (avatarPlaceholder) avatarPlaceholder.textContent = '🗣️';
                         break;
-                        
+
                     case 'thinking':
-                        avatarContainer.classList.add('thinking');
+                        avatarContainer.classList.add('avatar-thinking');
                         if (avatarPlaceholder) avatarPlaceholder.textContent = '🤔';
                         break;
-                        
+
                     case 'speaking':
-                        avatarContainer.classList.add('speaking');
+                        avatarContainer.classList.add('avatar-speaking');
                         if (avatarPlaceholder) avatarPlaceholder.textContent = '💬';
                         break;
-                        
+
                     case 'idle':
                     default:
                         if (avatarPlaceholder) avatarPlaceholder.textContent = 'AI';
                         break;
                 }
             }
-            
+
             if (controlButton && controlButtonIcon) {
                 if (sessionActive) {
-                    controlButton.classList.add('active');
-                    controlButtonIcon.textContent = '⏹️';
+                    controlButton.classList.remove('bg-gradient-to-br', 'from-green-400', 'to-green-600');
+                    controlButton.classList.add('bg-gradient-to-br', 'from-red-500', 'to-red-700', 'control-button-active');
+                    controlButtonIcon.innerHTML = '<i class="fa-solid fa-stop"></i>';
                 } else {
-                    controlButton.classList.remove('active');
-                    controlButtonIcon.textContent = '🎤';
+                    controlButton.classList.remove('bg-gradient-to-br', 'from-red-500', 'to-red-700', 'control-button-active');
+                    controlButton.classList.add('bg-gradient-to-br', 'from-blue-400', 'to-blue-600');
+                    controlButtonIcon.innerHTML = '<i class="fa-solid fa-microphone"></i>';
                 }
             }
         }
@@ -2586,27 +2077,27 @@
         
         async function toggleVoiceSession() {
             log('Toggle voice session clicked', 'INFO');
-            
+
             if (!window.sdkReady) {
-                alert('SDK not ready. Please wait for initialization.');
+                alert('SDK no listo. Por favor, espera a que se inicialice.');
                 return;
             }
-            
+
             if (!sessionActive) {
                 try {
                     if (!config) {
                         const initialized = await initializeSystem();
                         if (!initialized) {
-                            showError('Failed to initialize system');
+                            showError('Error al inicializar el sistema');
                             return;
                         }
                     }
-                    
+
                     await connectToRealtimeAPI();
-                    
+
                 } catch (error) {
                     log(`Failed to start session: ${error.message}`, 'ERROR');
-                    showError(`Failed to start: ${error.message}`);
+                    showError(`Error al iniciar: ${error.message}`);
                 }
             } else {
                 await cleanupSession();
@@ -2619,17 +2110,17 @@
         
         async function cleanupSession() {
             log('Cleaning up session', 'INFO');
-            
+
             sessionActive = false;
             realtimeConnected = false;
-            
+
             if (sessionTimer) {
                 clearInterval(sessionTimer);
                 sessionTimer = null;
             }
-            
+
             await stopAzureSpeechAvatar();
-            
+
             // Disconnect from Realtime via proxy
             if (socket) {
                 socket.emit('realtime_disconnect', {
@@ -2638,41 +2129,41 @@
                 socket.disconnect();
                 socket = null;
             }
-            
+
             if (audioProcessor) {
                 audioProcessor.disconnect();
                 audioProcessor = null;
             }
-            
+
             if (audioSource) {
                 audioSource.disconnect();
                 audioSource = null;
             }
-            
+
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
                 mediaStream = null;
             }
-            
+
             if (audioContext) {
                 await audioContext.close();
                 audioContext = null;
             }
-            
+
             updateUI('idle');
-            updateStatus('Disconnected - Ready to start');
-            updateConnectionStatus('Idle');
-            updateVADStatus('Inactive');
+            updateStatus('Desconectado - Listo para iniciar');
+            updateConnectionStatus('En espera');
+            updateVADStatus('Inactivo');
             updateAudioQuality('--');
-            updateAvatarStatus('Disconnected');
-            updateProxyStatus('Disconnected', false);
-            
+            updateAvatarStatus('Desconectado');
+            updateProxyStatus('X', false);
+
             const sessionTimeElement = document.getElementById('sessionTime');
             if (sessionTimeElement) {
                 sessionTimeElement.textContent = '00:00';
             }
-            
-            log('Session cleanup completed', 'SUCCESS');
+
+            log('Sesión limpiada', 'SUCCESS');
         }
         
         // ================================

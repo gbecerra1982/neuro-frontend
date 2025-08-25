@@ -1,0 +1,384 @@
+langchain-openai==0.2.6
+langchain
+langchain_core
+langgraph
+langgraph-checkpoint
+langgraph-checkpoint-sqlite
+langchain-community
+langdetect
+psycopg2-binary
+tabulate
+sqlalchemy
+teradatasql
+sqlalchemy-teradata
+azure-cognitiveservices-speech
+azure-cognitiveservices-search-customsearch
+azure-identity
+azure-search-documents==11.4.0
+azure-keyvault-secrets
+azure-functions
+azurefunctions-extensions-bindings-blob
+azure-cosmos==4.5.1
+azure-mgmt-web
+azure-mgmt-storage
+azure-storage-blob
+tiktoken
+semantic-kernel==1.17.1
+llama-index
+llama-index-llms-azure-openai
+llama-index-embeddings-azure-openai
+pyodbc
+azure.functions
+sqlparse
+flask
+langsmith==0.4.5
+openai==1.95.1
+uvicorn
+pytz
+requests
+python-dotenv
+beautifulsoup4
+pyautogen==0.3.0
+aiohttp==3.10.5
+fuzzywuzzy
+pandas
+build
+click
+colorama
+pytest
+python-Levenshtein
+pydantic==2.9.2
+agno==1.5.5
+azure-ai-inference>=1.0.0b9
+gunicorn
+openpyxl
+ms_identity_python[flask] @ git+https://github.com/azure-samples/ms-identity-python@0.9
+flask_session
+cachelib
+
+# Dependencias oficiales de Voice Live API
+# aiohttp==3.11.18
+azure-core==1.34.0
+# azure-identity==1.22.0
+certifi==2025.4.26
+cffi==1.17.1
+cryptography==44.0.3
+numpy
+pycparser==2.22
+# python-dotenv==1.1.0
+# requests==2.32.3
+# sounddevice==0.5.1
+typing_extensions==4.13.2
+urllib3==2.4.0
+websockets==15.0.1
+
+# Dependencias adicionales para el servidor Flask
+# flask==3.0.0
+flask-socketio==5.3.6
+python-engineio==4.7.1
+python-socketio==5.9.0
+# asyncio-compat
+
+# agno==1.5.5
+# aiohappyeyeballs==2.6.1
+# aiohttp==3.10.5
+# aiomultiprocess==0.9.1
+# aiosignal==1.4.0
+# aiosqlite==0.21.0
+# alembic==1.16.4
+# annotated-types==0.7.0
+# anthropic==0.49.0
+# anyio==4.10.0
+# APScheduler==3.11.0
+# argcomplete==3.6.2
+# attrs==25.3.0
+# azure-ai-inference==1.0.0b9
+# azure-cognitiveservices-search-customsearch==0.3.1
+# azure-cognitiveservices-speech==1.45.0
+# azure-common==1.1.28
+# azure-core==1.34.0
+# azure-cosmos==4.5.1
+# azure-functions==1.23.0
+# azure-identity==1.19.0
+# azure-keyvault-secrets==4.10.0
+# azure-mgmt-core==1.6.0
+# azure-mgmt-storage==23.0.1
+# azure-mgmt-web==9.0.0
+# azure-search-documents==11.4.0
+# azure-storage-blob==12.24.1
+# azurefunctions-extensions-base==1.0.0b2
+# azurefunctions-extensions-bindings-blob==1.1.0
+# banks==2.2.0
+# bcrypt==4.3.0
+# beautifulsoup4==4.13.4
+# bidict==0.23.1
+# black==25.1.0
+# blinker==1.9.0
+# Brotli==1.1.0
+# build==1.3.0
+# cachelib==0.13.0
+# certifi==2025.8.3
+# cffi==1.17.1
+# chardet==5.2.0
+# charset-normalizer==3.4.3
+# click==8.1.8
+# cloudevents==1.12.0
+# cobble==0.1.4
+# colorama==0.4.6
+# coloredlogs==15.0.1
+# composio_core==0.7.20
+# contourpy==1.3.3
+# cryptography==44.0.3
+# cycler==0.12.1
+# dataclasses-json==0.6.7
+# datamodel-code-generator==0.25.9
+# defusedxml==0.7.1
+# demjson3==3.0.6
+# Deprecated==1.2.18
+# deprecation==2.1.0
+# dirtyjson==1.0.8
+# diskcache==5.6.3
+# distro==1.9.0
+# dnspython==2.7.0
+# docker==7.1.0
+# docstring_parser==0.16
+# email_validator==2.2.0
+# et_xmlfile==2.0.0
+# eval_type_backport==0.2.2
+# Faker==36.2.3
+# fastapi==0.116.1
+# filetype==1.2.0
+# FLAML==2.3.5
+# Flask==3.1.1
+# flask-cors==6.0.1
+# Flask-Session==0.8.0
+# Flask-SocketIO==5.3.6
+# flatbuffers==25.2.10
+# fonttools==4.59.1
+# frozenlist==1.7.0
+# fsspec==2025.7.0
+# fuzzywuzzy==0.18.0
+# genson==1.3.0
+# gitdb==4.0.12
+# GitPython==3.1.45
+# googleapis-common-protos==1.70.0
+# greenlet==3.2.4
+# griffe==1.12.0
+# grpcio==1.74.0
+# grpcio-tools==1.71.2
+# gunicorn==23.0.0
+# h11==0.16.0
+# html2text==2020.1.16
+# httpcore==1.0.9
+# httpx==0.28.1
+# httpx-sse==0.4.0
+# humanfriendly==10.0
+# idna==3.10
+# importlib_metadata==8.5.0
+# inflect==5.6.2
+# inflection==0.5.1
+# iniconfig==2.1.0
+# invoke==2.2.0
+# isodate==0.7.2
+# isort==5.13.2
+# itsdangerous==2.2.0
+# Jinja2==3.1.6
+# jiter==0.10.0
+# joblib==1.5.1
+# jsonpatch==1.33
+# jsonpointer==3.0.0
+# jsonref==1.1.0
+# jsonschema==4.25.0
+# jsonschema-path==0.3.4
+# jsonschema-specifications==2025.4.1
+# kiwisolver==1.4.9
+# langchain==0.3.27
+# langchain-community==0.3.27
+# langchain-core==0.3.74
+# langchain-openai==0.2.6
+# langchain-text-splitters==0.3.9
+# langdetect==1.0.9
+# langgraph==0.6.5
+# langgraph-checkpoint==2.1.1
+# langgraph-checkpoint-sqlite==2.0.11
+# langgraph-prebuilt==0.6.4
+# langgraph-sdk==0.2.0
+# langsmith==0.4.5
+# lazy-object-proxy==1.11.0
+# letta==0.11.3
+# letta-client==0.1.261
+# Levenshtein==0.27.1
+# llama-cloud==0.1.35
+# llama-cloud-services==0.6.54
+# llama-index==0.12.42
+# llama-index-agent-openai==0.4.12
+# llama-index-cli==0.4.4
+# llama-index-core==0.12.42
+# llama-index-embeddings-azure-openai==0.3.9
+# llama-index-embeddings-openai==0.3.1
+# llama-index-indices-managed-llama-cloud==0.8.0
+# llama-index-llms-azure-openai==0.3.4
+# llama-index-llms-openai==0.4.7
+# llama-index-multi-modal-llms-openai==0.5.1
+# llama-index-program-openai==0.3.2
+# llama-index-question-gen-openai==0.3.1
+# llama-index-readers-file==0.4.11
+# llama-index-readers-llama-parse==0.4.0
+# llama-parse==0.6.54
+# lxml==6.0.0
+# magika==0.6.2
+# Mako==1.3.10
+# mammoth==1.10.0
+# markdown-it-py==4.0.0
+# markdownify==1.2.0
+# markitdown==0.1.2
+# MarkupSafe==3.0.2
+# marshmallow==3.26.1
+# marshmallow-sqlalchemy==1.4.2
+# matplotlib==3.10.5
+# mcp==1.10.1
+# mdurl==0.1.2
+# mistralai==1.9.3
+# more-itertools==10.7.0
+# mpmath==1.3.0
+# ms-identity-python @ git+https://github.com/azure-samples/ms-identity-python@834583646df315b79bc89f54808f4ae9c2a1ce59
+# msal==1.33.0
+# msal-extensions==1.3.1
+# msgspec==0.19.0
+# msrest==0.7.1
+# multidict==6.6.4
+# mypy_extensions==1.1.0
+# nest-asyncio==1.6.0
+# networkx==3.5
+# nltk==3.9.1
+# numpy==2.3.2
+# oauthlib==3.3.1
+# onnxruntime==1.22.1
+# openai==1.95.1
+# openapi-core==0.19.4
+# openapi-schema-validator==0.6.3
+# openapi-spec-validator==0.7.2
+# openpyxl==3.1.5
+# opentelemetry-api==1.30.0
+# opentelemetry-exporter-otlp==1.30.0
+# opentelemetry-exporter-otlp-proto-common==1.30.0
+# opentelemetry-exporter-otlp-proto-grpc==1.30.0
+# opentelemetry-exporter-otlp-proto-http==1.30.0
+# opentelemetry-instrumentation==0.51b0
+# opentelemetry-instrumentation-requests==0.51b0
+# opentelemetry-instrumentation-sqlalchemy==0.51b0
+# opentelemetry-proto==1.30.0
+# opentelemetry-sdk==1.30.0
+# opentelemetry-semantic-conventions==0.51b0
+# opentelemetry-util-http==0.51b0
+# orjson==3.11.2
+# ormsgpack==1.10.0
+# packaging==25.0
+# pandas==2.2.3
+# paramiko==4.0.0
+# parse==1.20.2
+# pathable==0.4.4
+# pathspec==0.12.1
+# pathvalidate==3.3.1
+# pdfminer.six==20250506
+# pillow==10.4.0
+# platformdirs==4.3.8
+# pluggy==1.6.0
+# prance==23.6.21.0
+# prettytable==3.16.0
+# prompt_toolkit==3.0.51
+# propcache==0.3.2
+# protobuf==5.29.5
+# psycopg2-binary==2.9.10
+# pyautogen==0.3.0
+# pybars4==0.9.13
+# pycparser==2.22
+# pycryptodome==3.23.0
+# pydantic==2.11.7
+# pydantic-settings==2.10.1
+# pydantic_core==2.33.2
+# Pygments==2.19.2
+# pyhumps==3.8.0
+# PyJWT==2.10.1
+# PyMeta3==0.5.1
+# PyNaCl==1.5.0
+# pyodbc==5.2.0
+# pyparsing==3.2.3
+# pypdf==5.9.0
+# pyperclip==1.9.0
+# pyproject_hooks==1.2.0
+# pyreadline3==3.5.4
+# Pysher==1.0.8
+# pytest==8.4.1
+# python-box==7.3.2
+# python-dateutil==2.9.0.post0
+# python-dotenv==1.1.1
+# python-engineio==4.7.1
+# python-Levenshtein==0.27.1
+# python-multipart==0.0.19
+# python-pptx==1.0.2
+# python-socketio==5.9.0
+# pytz==2023.4
+# pywin32==311
+# PyYAML==6.0.2
+# questionary==2.1.0
+# RapidFuzz==3.13.0
+# referencing==0.36.2
+# regex==2025.7.34
+# requests==2.32.4
+# requests-oauthlib==2.0.0
+# requests-toolbelt==1.0.0
+# rfc3339-validator==0.1.4
+# rich==13.9.4
+# rpds-py==0.27.0
+# ruamel.yaml==0.18.14
+# ruamel.yaml.clib==0.2.12
+# semantic-kernel==1.17.1
+# semver==3.0.4
+# sentry-sdk==2.19.1
+# shellingham==1.5.4
+# simple-websocket==1.1.0
+# six==1.17.0
+# smmap==5.0.2
+# sniffio==1.3.1
+# soupsieve==2.7
+# SQLAlchemy==2.0.43
+# sqlalchemy-json==0.7.0
+# SQLAlchemy-Utils==0.41.2
+# sqlalchemy_teradata==0.9.0.dev0
+# sqlite-vec==0.1.6
+# sqlmodel==0.0.16
+# sqlparse==0.5.3
+# sse-starlette==3.0.2
+# starlette==0.47.2
+# striprtf==0.0.26
+# structlog==25.4.0
+# sympy==1.14.0
+# tabulate==0.9.0
+# tavily-python==0.7.10
+# tenacity==9.1.2
+# teradata==15.10.0.21
+# teradatasql==20.0.0.34
+# termcolor==3.1.0
+# tiktoken==0.11.0
+# tomli==2.2.1
+# tqdm==4.67.1
+# typer==0.15.4
+# typing-inspect==0.9.0
+# typing-inspection==0.4.1
+# typing_extensions==4.13.2
+# tzdata==2025.2
+# tzlocal==5.3.1
+# urllib3==2.4.0
+# uvicorn==0.35.0
+# wcwidth==0.2.13
+# websocket-client==1.8.0
+# websockets==15.0.1
+# Werkzeug==3.1.3
+# wrapt==1.17.3
+# wsproto==1.2.0
+# xlsxwriter==3.2.5
+# xxhash==3.5.0
+# yarl==1.20.1
+# zipp==3.23.0
+# zstandard==0.23.0

@@ -15,12 +15,21 @@ from config.settings import (
     LOGMECH,
     CURRENT_DATE
 )
+import os
 # Configurar logging adicional
 logging.basicConfig(level=logging.INFO)
 rag_logger = logging.getLogger("rag_agent")
  
+log_dir = os.path.join(os.getcwd(), 'data')
  
-logger = GetLogger(__name__, level=LOGLEVEL, log_file='data/app_logs.log').logger
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+    print(f"Directorio creado: {log_dir}")
+ 
+logger = GetLogger(__name__, level=LOGLEVEL, log_file=os.path.join(log_dir, 'app_logs.log')).logger
+
+
+# logger = GetLogger(__name__, level=LOGLEVEL, log_file='data/app_logs.log').logger
 
 def retrieve_doc_fn(question: str) -> str:
     try:

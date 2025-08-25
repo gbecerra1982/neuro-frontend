@@ -1,18 +1,20 @@
 import json
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langgraph_supervisor import create_supervisor    # Cambiado de langgraph_supervisor
+# from langgraph_supervisor import create_supervisor    # Cambiado de langgraph_supervisor
+from agents.rag_agent import rag_agent
 #from workflows.states import OverallState
 #from agents.rag_doc_agent import rag_doc_agent, create_rag_doc_agent
 from agents.rag_agent import rag_agent
 from tools.rag import rag_tool
-from llm.llm import llm_gpt_4o_mini
+from llm.llm import llm_gpt_4o_mini, llm_gpt_4o, llm_gpt_4_1_mini
 from prompt_engineering.query_prompts import prompt_supervisor
 from config.memory import get_memory_checkpointer
 from config.settings import CURRENT_DATE, CURRENT_DAY
 from utils.util_logger import GetLogger
 from config.settings import LOGLEVEL
 from datetime import datetime
+import os
 # from utils.utils import get_connection_to_td
 from config.settings import (
     TD_HOST,
@@ -23,8 +25,16 @@ from config.settings import (
     CURRENT_DATE
 )
  
-logger = GetLogger(__name__, level=LOGLEVEL, log_file='data/app_logs.log').logger
+# logger = GetLogger(__name__, level=LOGLEVEL, log_file='data/app_logs.log').logger
+
+log_dir = os.path.join(os.getcwd(), 'data')
  
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+    print(f"Directorio creado: {log_dir}")
+ 
+logger = GetLogger(__name__, level=LOGLEVEL, log_file=os.path.join(log_dir, 'app_logs.log')).logger
+
 
 from typing import Iterable, List, Any
 import json, ast
@@ -74,18 +84,18 @@ def get_last_tool_content(messages: Iterable[BaseMessage]) -> Any:
             return _try_parse_content(getattr(m, "content", None))
     return None 
 
-def _compile_graph():
-    memory = get_memory_checkpointer()
-    try:
-        if memory is not None:
-            graph = _supervisor.compile(checkpointer=memory)
-            logger.info("Supervisor compilado con memoria")
-            return graph
-        logger.warning("Memory checkpointer no disponible, compilando sin memoria")
-        return _supervisor.compile()
-    except Exception as e:
-        logger.error(f"Error compilando supervisor: {e}. Compilando sin memoria")
-        return _supervisor.compile()
+# def _compile_graph():
+#     memory = get_memory_checkpointer()
+#     try:
+#         if memory is not None:
+#             graph = _supervisor.compile(checkpointer=memory)
+#             logger.info("Supervisor compilado con memoria")
+#             return graph
+#         logger.warning("Memory checkpointer no disponible, compilando sin memoria")
+#         return _supervisor.compile()
+#     except Exception as e:
+#         logger.error(f"Error compilando supervisor: {e}. Compilando sin memoria")
+#         return _supervisor.compile()
 
 # def _fetch_dynamic_context_sql():
 #     """
@@ -166,12 +176,12 @@ No agregues texto adicional fuera del JSON."""
     ),
 ])
 
-_supervisor = create_supervisor(
-    model=llm_gpt_4o_mini,
-    agents=[rag_agent], 
-    prompt=prompt_supervisor_template,
-    output_mode="full_history"
-)
+# _supervisor = create_supervisor(
+#     model=llm_gpt_4_1_mini,
+#     agents=[rag_agent], 
+#     prompt=prompt_supervisor_template,
+#     output_mode="full_history"
+# )
  
  
 def _is_relevant_keyword_heuristic(user_question: str) -> bool:
@@ -285,20 +295,20 @@ def procesar_consulta_langgraph(user_question: str, session_id: str = "default_s
         logger.warning("Session ID vacío, usando 'default_session'")
  
     # TRIAGE: decidir si la pregunta está dentro del alcance del dominio
-    triage = _triage_question(user_question)
-    logger.info(
-        "Triage => is_relevant=%s, confidence=%.2f, source=%s, reason=%s",
-        triage.get("is_relevant"), triage.get("confidence", 0.0), triage.get("source"), triage.get("reason", ""),
-    )
-    print(f" TRIAGE: is_relevant={triage.get('is_relevant')}, confidence={triage.get('confidence', 0.0)}")
+    # triage = _triage_question(user_question)
+    # logger.info(
+    #     "Triage => is_relevant=%s, confidence=%.2f, source=%s, reason=%s",
+    #     triage.get("is_relevant"), triage.get("confidence", 0.0), triage.get("source"), triage.get("reason", ""),
+    # )
+    # print(f" TRIAGE: is_relevant={triage.get('is_relevant')}, confidence={triage.get('confidence', 0.0)}")
  
-    if not triage.get("is_relevant", False):
-        fuera_de_scope = (
-            "Tu consulta está fuera del alcance de esta aplicación. "
-            "Solo puedo responder sobre pozos, equipos y yacimientos de Vaca Muerta "
-        )
-        logger.info(f"[X] CONSULTA FUERA DE ALCANCE: {fuera_de_scope}")
-        return fuera_de_scope, session_id
+    # if not triage.get("is_relevant", False):
+    #     fuera_de_scope = (
+    #         "Tu consulta está fuera del alcance de esta aplicación. "
+    #         "Solo puedo responder sobre pozos, equipos y yacimientos de Vaca Muerta "
+    #     )
+    #     logger.info(f"[X] CONSULTA FUERA DE ALCANCE: {fuera_de_scope}")
+    #     return fuera_de_scope, session_id
  
     # CAMBIADO: Usar directamente el agente RAG en lugar del supervisor
     try:
@@ -316,11 +326,11 @@ def procesar_consulta_langgraph(user_question: str, session_id: str = "default_s
         logger.info(f"  - Tipo de agente: {type(rag_agent).__name__}")
         logger.info(f"  - Herramientas disponibles: rag_tool (definida en rag_agent.py)")
        
-        react_graph = _compile_graph()
+        # react_graph = _compile_graph()
         config = {"configurable": {"thread_id": session_id}}
     
         try:
-            output = react_graph.invoke(
+            output = rag_agent.invoke(
                 input={
                     "question": user_question,
                     "messages": [{"role": "user", "content": user_question}],
@@ -329,7 +339,7 @@ def procesar_consulta_langgraph(user_question: str, session_id: str = "default_s
             )
         except Exception as invoke_error:
             logger.error(f"Error al invocar react_graph: {str(invoke_error)}")
-            fallback_graph = _supervisor.compile()
+            fallback_graph = rag_agent.compile()
             output = fallback_graph.invoke(
                 input={
                     "question": user_question,

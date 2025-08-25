@@ -1,39 +1,28 @@
-# Entornos / secretos
+__pycache__/    
+src\prompts\__pycache__/
 .env
-.env.*
-!.env-template
-
-# Caches y entornos Python
-__pycache__/
-src/prompts/__pycache__/
+.venv
 .venv/
+.env/
 venv/
 env/
-
-# IDE/Editor
 .vscode/
-
-# Carpeta de respaldo / temporales
 00-backup/
 enrutadores/
 .deployment
-.claude
-
-# Notebooks y scripts locales
 auxiliar.ipynb
-prueba_flujo.ipynb
-langgraph_test.ipynb
-flujo2.ipynb
-
-# Archivos locales de prueba/auxiliares
-auxiliar.py
+auxiliar.py 
 preparacion_agente.py
 borrar.py
 borrar1.py
+prueba_flujo.ipynb
+langgraph_test.ipynb
+flujo2.ipynb
 aux_func.py
+catalogo_consultas1.json
+catalogo_consultas2.json 
 agente_aux.py
 respuestas_avatar
+agente_aux.py
 
-# Datos JSON locales
-catalogo_consultas1.json
-catalogo_consultas2.json
+

@@ -9,9 +9,17 @@ from config.settings import (
     CURRENT_DATE
 )
 from utils.util_logger import GetLogger
+import os
 
+log_dir = os.path.join(os.getcwd(), 'data')
+ 
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+    print(f"Directorio creado: {log_dir}")
+ 
+logger = GetLogger(__name__, level=LOGLEVEL, log_file=os.path.join(log_dir, 'app_logs.log')).logger
 
-logger = GetLogger(__name__, level=LOGLEVEL, log_file='src/data/app_logs.log').logger
+# logger = GetLogger(__name__, level=LOGLEVEL, log_file='src/data/app_logs.log').logger
 
 
 def _fetch_dynamic_context_sql() -> Optional[str]:

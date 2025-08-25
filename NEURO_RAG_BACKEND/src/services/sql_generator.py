@@ -11,9 +11,19 @@ from prompt_engineering.query_prompts import (
 )
 from llm.llm import llm_gpt_4o_mini
 from workflows.states import SqlAgentState, SqlStepOutput
+import os
+
+log_dir = os.path.join(os.getcwd(), 'data')
+ 
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+    print(f"Directorio creado: {log_dir}")
+ 
+logger = GetLogger(__name__, level=LOGLEVEL, log_file=os.path.join(log_dir, 'app_logs.log')).logger
 
 
-logger = GetLogger(__name__, level=LOGLEVEL, log_file='src/data/app_logs.log').logger
+
+# logger = GetLogger(__name__, level=LOGLEVEL, log_file='src/data/app_logs.log').logger
 
 
 def generate_sql_query(state: SqlAgentState, llm_model=llm_gpt_4o_mini) -> SqlAgentState:

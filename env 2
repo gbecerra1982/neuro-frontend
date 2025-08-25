@@ -1,0 +1,52 @@
+# === VARIABLES DE ENTORNO === #
+COGNITIVE_SEARCH_ENDPOINT=https://ydtzdcssgpt001.search.windows.net
+COGNITIVE_SEARCH_API_KEY=D6VTECbSxAAD8j9Jxo2IEKBx0OygVti2VzFldLkLrCAzSeC1IOdg
+COGNITIVE_SEARCH_INDEX_NAME=pywo-idx
+AZURE_SEARCH_ADMIN_KEY = D6VTECbSxAAD8j9Jxo2IEKBx0OygVti2VzFldLkLrCAzSeC1IOdg
+AZURE_SEARCH_USE_SEMANTIC="true"
+AZURE_SEARCH_APPROACH="hybrid"
+AZURE_SEARCH_SERVICE_ENDPOINT=https://ydtzdcssgpt001.search.windows.net
+AZURE_SEARCH_API_VERSION = "2024-07-01"
+AZURE_SEARCH_INDEX="neuro-rag"
+SQL_SEARCH_USE_SEMANTIC="true"
+SQL_SEARCH_APPROACH="hybrid"
+ 
+SPEECH_RESOURCE_URL=/subscriptions/af3ab88c-6831-4d3e-945e-f44af1b90b4b/resourceGroups/ydtzdrgpgpt001/providers/Microsoft.CognitiveServices/accounts/ydtzdcssgpt001
+SPEECH_KEY="FzLoq4Rf1m3j7VUhvwnEJpI1lBc3suv6kCrDfWVgKQmPYIYD75UiJQQJ99BAACHYHv6XJ3w3AAAYACOGBK3E"
+SPEECH_PRIVATE_ENDPOINT=https://ydtzdcssgpt001.cognitiveservices.azure.com/
+SPEECH_ENDPOINT=https://ydtzdcssgpt001.cognitiveservices.azure.com/
+SPEECH_REGION="eastus2"
+
+AZURE_CONNECTION_STRING ="DefaultEndpointsProtocol=https;AccountName=ydtzdstagpt003;AccountKey=MbaMV1V6VFbehs6JNSKhlFzEFEODSxGtN8a0jG40xspzZ0SI9kF8df/Kqs+BurZGuKG/MBdWtrMl+AStyOnQvw==;EndpointSuffix=core.windows.net"
+AZURE_CONTAINER_NAME = "neuro-rag"
+ 
+API_VERSION="2024-07-01"
+AZURE_OPENAI_API_KEY="23957c7406ec4c7aa21f50fbd1a29ece"
+OPENAI_API_KEY="23957c7406ec4c7aa21f50fbd1a29ece"
+AZURE_OPENAI_ENDPOINT="https://ydtzdoaigpt001.openai.azure.com/"
+AZURE_OPENAI_DEPLOYMENT_NAME="chat4og"
+AZURE_OPENAI_EMBEDDING_MODEL="text-embedding-3-large"
+AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME="embeddingada003l"
+ 
+#ICE SERVER
+ICE_SERVER_PASSWORD="a9ae80d2922b528b51b11b880703f87f87bc7ae9"
+ICE_SERVER_URL="turn:pavhp.ypf.com:3478"
+ICE_SERVER_USERNAME="1739833121"
+ 
+# logger
+LOGLEVEL_UTIL="INFO"
+LOGLEVEL_CODE_ORCHESTRATION="INFO"
+ 
+# TERADATA
+TD_USER=YS02420
+TD_HOST=TDPROD
+LOGMECH=LDAP
+TERADATA_PASS = 'SalioElNuevoBillete#10000'
+ 
+# CLOUDERA
+ 
+CLOUDERA_HOST = "hs2-hive-prod.dw-appazrusbicdp.yu7q-bef3.cloudera.site"
+CLOUDERA_PORT = 443
+CLOUDERA_AUTH = "LDAP"
+CLOUDERA_USER = "srv_p_cdp_ia_tddim_v"
+CLOUDERA_PASS = "tn!^kBhUvWT#!2Bn^3r48Ui#W"

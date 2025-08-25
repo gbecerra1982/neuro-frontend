@@ -101,9 +101,9 @@ performance_logger.setLevel(logging.INFO)
 # Azure OpenAI Realtime API Configuration
 AZURE_OPENAI_ENDPOINT = os.environ.get('AZURE_OPENAI_ENDPOINT')
 AZURE_OPENAI_API_KEY = os.environ.get('AZURE_OPENAI_API_KEY')  # <-- no se expone al front
-AZURE_OPENAI_DEPLOYMENT = os.environ.get('AZURE_OPENAI_DEPLOYMENT', 'gpt-4o-realtime-preview')
-AZURE_OPENAI_API_VERSION = os.environ.get('AZURE_OPENAI_API_VERSION', '2025-04-01-preview')
-AZURE_OPENAI_MODEL = os.environ.get('AZURE_OPENAI_MODEL', 'gpt-4o-realtime-preview')
+AZURE_OPENAI_DEPLOYMENT = os.environ.get('AZURE_OPENAI_DEPLOYMENT', 'gpt-4o-mini-realtime-preview')
+AZURE_OPENAI_API_VERSION = os.environ.get('AZURE_OPENAI_API_VERSION', '2024-10-01-preview')
+AZURE_OPENAI_MODEL = os.environ.get('AZURE_OPENAI_MODEL', 'gpt-4o-mini-realtime-preview')
 
 # Speech Service Config (claves nunca al front)
 SPEECH_KEY = os.environ.get('SPEECH_KEY')

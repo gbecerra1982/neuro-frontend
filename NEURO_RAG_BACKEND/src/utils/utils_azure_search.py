@@ -11,6 +11,7 @@ try:
 except:
     from util_logger import GetLogger
 import requests
+import os
 
 load_dotenv()
 # Azure search Integration Settings
@@ -22,7 +23,15 @@ LOGLEVEL = os.environ.get('LOGLEVEL', 'DEBUG').upper()
 logging.basicConfig(level=LOGLEVEL)
 AZURE_SEARCH_INDEX = "neuro-rag"  # Replace with your index name
 AZURE_SEARCH_TOP_K = 5
-logger = GetLogger(__name__, level=LOGLEVEL, log_file='data/app_logs.log').logger
+# logger = GetLogger(__name__, level=LOGLEVEL, log_file='data/app_logs.log').logger
+
+log_dir = os.path.join(os.getcwd(), 'data')
+ 
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+    print(f"Directorio creado: {log_dir}")
+ 
+logger = GetLogger(__name__, level=LOGLEVEL, log_file=os.path.join(log_dir, 'app_logs.log')).logger
 
 class AzureSearch:
     def __init__(self):
