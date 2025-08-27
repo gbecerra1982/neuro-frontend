@@ -4,17 +4,9 @@ from utils.util_logger import GetLogger
 from config.settings import LOGLEVEL, CLOUDERA_HOST, CLOUDERA_USER, CLOUDERA_PASS, CLOUDERA_PORT, CLOUDERA_AUTH
 from utils.utils import get_connection_to_cl
 from workflows.states import SqlAgentState
-import os
 
-log_dir = os.path.join(os.getcwd(), 'data')
- 
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-    print(f"Directorio creado: {log_dir}")
- 
-logger = GetLogger(__name__, level=LOGLEVEL, log_file=os.path.join(log_dir, 'app_logs.log')).logger
 
-# logger = GetLogger(__name__, level=LOGLEVEL, log_file='src/data/app_logs.log').logger
+logger = GetLogger(__name__, level=LOGLEVEL, log_file='src/data/app_logs.log').logger
 
 
 def execute_sql_query(state: SqlAgentState) -> SqlAgentState:
