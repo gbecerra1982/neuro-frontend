@@ -1,3 +1,9 @@
+# Production server
+gunicorn==21.2.0
+eventlet==0.33.3
+psutil==5.9.8
+# Core dependencies
+agno==1.8.1
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.15
 aioice==0.10.1
@@ -7,8 +13,9 @@ annotated-types==0.7.0
 anyio==4.10.0
 attrs==25.3.0
 av==14.4.0
-azure-ai-agents==1.2.0b2
-azure-ai-projects==1.1.0b2
+# azure-ai-agents==1.2.0b2  # Beta version, may not be available in all environments
+# azure-ai-projects==1.1.0b2  # Beta version, may not be available in all environments
+azure-cognitiveservices-speech==1.42.0
 azure-common==1.1.28
 azure-core==1.35.0
 azure-identity==1.24.0
@@ -16,13 +23,14 @@ azure-keyvault==4.2.0
 azure-keyvault-certificates==4.10.0
 azure-keyvault-keys==4.11.0
 azure-keyvault-secrets==4.10.0
-azure-search==1.0.0b2
+# azure-search==1.0.0b2  # Beta version, using azure-search-documents instead
 azure-search-documents==11.5.3
 azure-storage-blob==12.26.0
 beautifulsoup4==4.13.4
 bidict==0.23.1
 blinker==1.9.0
 bs4==0.0.2
+cachelib==0.10.2
 certifi==2025.8.3
 cffi==1.17.1
 chardet==5.2.0
@@ -40,6 +48,7 @@ Flask==3.1.2
 flask-cors==6.0.1
 Flask-SocketIO==5.5.1
 frozenlist==1.7.0
+fuzzywuzzy==0.18.0
 google-crc32c==1.7.1
 greenlet==3.2.4
 h11==0.16.0
@@ -47,8 +56,9 @@ httpcore==1.0.9
 httpx==0.28.1
 idna==3.10
 ifaddr==0.2.0
-impala==0.2
+# impala==0.2  # Not used in codebase
 importlib_metadata==8.7.0
+ipython==8.18.1
 isodate==0.7.2
 itsdangerous==2.2.0
 Jinja2==3.1.6
@@ -62,6 +72,7 @@ langchain==0.3.27
 langchain-core==0.3.74
 langchain-openai==0.3.30
 langchain-text-splitters==0.3.9
+langdetect==1.0.9
 langgraph==0.6.6
 langgraph-checkpoint==2.1.1
 langgraph-prebuilt==0.6.4
@@ -69,6 +80,7 @@ langgraph-sdk==0.2.2
 langgraph-supervisor==0.0.29
 langsmith==0.4.15
 lazy-object-proxy==1.11.0
+Levenshtein==0.21.1
 lxml==6.0.0
 MarkupSafe==3.0.2
 more-itertools==10.7.0
@@ -95,6 +107,7 @@ pathable==0.4.4
 prance==25.4.8.0
 propcache==0.3.2
 protobuf==6.32.0
+psycopg2-binary==2.9.9
 pybars4==0.9.13
 pycparser==2.22
 pycryptodome==3.23.0
@@ -110,6 +123,7 @@ python-dateutil==2.9.0.post0
 python-docx==1.2.0
 python-dotenv==1.1.1
 python-engineio==4.12.2
+python-Levenshtein==0.21.1
 python-socketio==5.13.0
 pytz==2025.2
 PyYAML==6.0.2

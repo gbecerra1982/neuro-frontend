@@ -54,42 +54,22 @@ setup_logging()
 # Load environment variables
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('azure_speech_proxy.log')
-    ]
-)
-
+# Logging is configured in logging_config.py
 logger = logging.getLogger(__name__)
 
-# Reducir el nivel de logging de werkzeug y engineio
-logging.getLogger('werkzeug').setLevel(logging.WARNING)
-logging.getLogger('engineio.server').setLevel(logging.WARNING)
-logging.getLogger('socketio.server').setLevel(logging.WARNING)
-
-# Si quieres ver más detalles, solo para este módulo
+# Configure logging levels based on environment
 if os.environ.get('DEBUG_MODE', 'false').lower() == 'true':
     logger.setLevel(logging.DEBUG)
-    logging.getLogger('werkzeug').setLevel(logging.INFO)
-    logging.getLogger('engineio.server').setLevel(logging.INFO)
-    logging.getLogger('socketio.server').setLevel(logging.INFO)
+else:
+    logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    logging.getLogger('engineio.server').setLevel(logging.WARNING)
+    logging.getLogger('socketio.server').setLevel(logging.WARNING)
 
 # Create specific loggers for different components
-logger = logging.getLogger('azure_speech_proxy')
 request_logger = logging.getLogger('azure_speech_proxy.requests')
 response_logger = logging.getLogger('azure_speech_proxy.responses')
 error_logger = logging.getLogger('azure_speech_proxy.errors')
 performance_logger = logging.getLogger('azure_speech_proxy.performance')
-
-# Set different log levels if needed
-logger.setLevel(logging.DEBUG)
-request_logger.setLevel(logging.DEBUG)
-response_logger.setLevel(logging.DEBUG)
-error_logger.setLevel(logging.ERROR)
-performance_logger.setLevel(logging.INFO)
 
 
 
@@ -154,9 +134,9 @@ SESSION_CLEANUP_INTERVAL = int(os.environ.get('SESSION_CLEANUP_INTERVAL', 300))
 FLASK_PORT = int(os.environ.get('FLASK_PORT', 5000))
 FLASK_HOST = os.environ.get('FLASK_HOST', '0.0.0.0')
 
-#backend config
-FASTAPI_URL = "http://localhost:8000/ask"
-REQUEST_TIMEOUT = 120
+# Backend configuration - use environment variables for production
+FASTAPI_URL = os.environ.get('FASTAPI_URL', 'http://localhost:8000/ask')
+REQUEST_TIMEOUT = int(os.environ.get('REQUEST_TIMEOUT', 120))
 
 # Version & Templates centralizados
 APP_VERSION = os.environ.get('APP_VERSION', '2.1.0')
@@ -1503,4 +1483,6 @@ if __name__ == "__main__":
     logger.info(f"Log Level: {logging.getLevelName(logger.level)}")
     logger.info("="*50)
 
-    socketio.run(app, host=FLASK_HOST, port=FLASK_PORT, debug=True, use_reloader=False)
+    # Production fix: Add allow_unsafe_werkzeug=True for production deployment
+    # In production, use a proper WSGI server like gunicorn or waitress instead
+    socketio.run(app, host=FLASK_HOST, port=FLASK_PORT, debug=False, use_reloader=False, allow_unsafe_werkzeug=True)
