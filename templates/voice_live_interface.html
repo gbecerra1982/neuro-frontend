@@ -200,7 +200,8 @@
                         id="avatarPlaceholder">AI</div>
                 </div>
                 <div class=""  h-5/2 aspect-[4/3] w-full max-w-md h-75 rounded-3xl overflow-hidden  shadow-2xl shadow-orange-500/40 bg-black relative block" id="avatarVideoContainer">
-                    <video id="avatarVideo" autoplay playsinline></video>
+                    <!-- Muted helps autoplay policies on some browsers; unmute after media starts if needed -->
+                    <video id="avatarVideo" autoplay playsinline muted></video>
                 </div>
                 <div class="my-5 font-semibold text-green-400 text-xl min-h-[30px] hidden" id="status">Iniciando SDK...
                 </div>
@@ -349,6 +350,7 @@
         let azureSpeechAvatarSynthesizer = null;
         let azureSpeechAvatarConnection = null;
         let azureSpeechAvatarConnected = false;
+        let isInitializingAvatar = false; // Prevent concurrent initializations
         
         // Voice activity detection state
         let vadActive = false;
@@ -396,11 +398,8 @@
         const RECONNECT_DELAY = 2000;
         const MAX_DEBUG_ENTRIES = 200;
         
-        // Azure Speech configuration
-        const AZURE_SPEECH_KEY = '7TZA2Og761nyAROkbOxzdkEGEkJaa60lZQTwwV2roxxDJGxcOw0DJQQJ99BGACHYHv6XJ3w3AAAAACOGE4Cj';
-        const AZURE_SPEECH_REGION = 'eastus2';
-        const AZURE_AVATAR_CHARACTER = 'meg';
-        const AZURE_AVATAR_STYLE = 'business';
+        // Azure Speech configuration will be loaded from backend endpoints
+        // Do not embed credentials in the client.
         
         // ================================
         // LOGGING AND DEBUG SYSTEM
@@ -486,49 +485,114 @@
         // ================================
         
         async function initializeAzureSpeechAvatar() {
+            // Prevent concurrent initializations
+            if (isInitializingAvatar) {
+                log('[AVATAR-INIT] Avatar initialization already in progress, skipping', 'INFO');
+                return;
+            }
+            
+            // Check if already connected
+            if (azureSpeechAvatarConnected) {
+                log('[AVATAR-INIT] Avatar already connected, skipping initialization', 'INFO');
+                return;
+            }
+            
+            isInitializingAvatar = true;
+            
             try {
-                log('Initializing Azure Speech Avatar', 'AVATAR');
+                log('[AVATAR-INIT] Starting Azure Speech Avatar initialization', 'AVATAR');
                 
-                // Verificar SDK
+                // Verify SDK availability
                 if (typeof window.SpeechSDK === 'undefined') {
-                    throw new Error('Azure Speech SDK not loaded');
+                    log('[AVATAR-INIT] Azure Speech SDK not available, waiting...', 'WARNING');
+                    if (window.sdkLoadPromise) {
+                        await window.sdkLoadPromise;
+                    }
+                    if (typeof window.SpeechSDK === 'undefined') {
+                        throw new Error('Azure Speech SDK not loaded after waiting');
+                    }
                 }
                 
                 const sdkVersion = window.SpeechSDK.SDKVersion || 'Unknown';
-                log(`Using Azure Speech SDK version: ${sdkVersion}`, 'INFO');
+                log(`[AVATAR-INIT] Using Azure Speech SDK version: ${sdkVersion}`, 'INFO');
                 
                 updateAvatarStatus('Initializing...');
                 
-                // Obtener relay token
-                const relayUrl = `https://${AZURE_SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/avatar/relay/token/v1`;
-                log(`Fetching relay token from: ${relayUrl}`, 'NETWORK');
+                // Verify configuration is available
+                if (!config) {
+                    log('[AVATAR-INIT] Configuration is null, attempting to load', 'WARNING');
+                    await ensureConfiguration();
+                    if (!config) {
+                        throw new Error('Configuration not loaded - config object is null after ensureConfiguration');
+                    }
+                }
                 
-                const relayResp = await fetch(relayUrl, {
+                // Check if avatar is enabled
+                if (!config.avatar?.enabled) {
+                    log('[AVATAR-INIT] Avatar is disabled in configuration', 'WARNING');
+                    updateAvatarStatus('Disabled');
+                    return;
+                }
+                
+                // Log avatar configuration from backend
+                log('[AVATAR-INIT] Avatar configuration from backend', 'INFO', {
+                    enabled: config.avatar?.enabled,
+                    character: config.avatar?.character,
+                    style: config.avatar?.style,
+                    speechRegion: config.features?.speech_service,
+                    hasToken: !!config.features?.speech_service
+                });
+                
+                // Obtain relay token via server-side proxy to avoid exposing keys
+                log('[AVATAR-INIT] Fetching relay token from server proxy', 'NETWORK');
+                const relayResp = await fetch('/api/avatar-relay', { 
                     method: 'GET',
-                    headers: { 
-                        'Ocp-Apim-Subscription-Key': AZURE_SPEECH_KEY,
-                        'Content-Type': 'application/json'
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
                     }
                 });
 
                 if (!relayResp.ok) {
                     const errorText = await relayResp.text();
+                    log(`[AVATAR-INIT] Relay token request failed: ${relayResp.status} - ${errorText}`, 'ERROR');
                     throw new Error(`Relay token error ${relayResp.status}: ${errorText}`);
                 }
 
                 const relay = await relayResp.json();
+                log('[AVATAR-INIT] Relay token obtained successfully', 'SUCCESS');
                 
-                // Formatear ICE servers correctamente
-                const iceServers = [
-                    {
-                        urls: relay.Urls || relay.urls,
-                        username: relay.Username || relay.username, 
-                        credential: relay.Password || relay.password || relay.credential
-                    },
-                    {
-                        urls: 'stun:stun.l.google.com:19302'
+                // Build ICE servers list from server config and relay response
+                const iceServers = [];
+
+                // Include enterprise TURN servers if provided by backend
+                if (config && Array.isArray(config.turnServers)) {
+                    for (const s of config.turnServers) {
+                        if (s && s.urls) {
+                            iceServers.push({ urls: s.urls, username: s.username, credential: s.credential });
+                        }
                     }
-                ];
+                }
+
+                // Include public STUN servers if available
+                if (config && Array.isArray(config.stunServers)) {
+                    for (const s of config.stunServers) {
+                        if (s && s.urls) iceServers.push({ urls: s.urls });
+                    }
+                }
+
+                // Include Azure relay TURN credentials
+                if (relay && (relay.Urls || relay.urls)) {
+                    const relayUrlsRaw = relay.Urls || relay.urls;
+                    const relayUrls = Array.isArray(relayUrlsRaw) ? relayUrlsRaw : (relayUrlsRaw ? [relayUrlsRaw] : []);
+                    if (relayUrls.length) {
+                        iceServers.push({
+                            urls: relayUrls,
+                            username: relay.Username || relay.username,
+                            credential: relay.Password || relay.password || relay.credential
+                        });
+                    }
+                }
                 
                 log('ICE servers obtained', 'SUCCESS', { 
                     servers: iceServers.length,
@@ -536,19 +600,79 @@
                 });
 
                 // Configure PeerConnection
+                // RTCConfiguration based on backend best-practice defaults
+                const webrtcCfg = (config && config.webrtc) || {};
                 const pcConfig = {
                     iceServers: iceServers,
-                    iceTransportPolicy: 'all',
-                    bundlePolicy: 'max-bundle',
-                    rtcpMuxPolicy: 'require',
-                    sdpSemantics: 'unified-plan'
+                    iceTransportPolicy: webrtcCfg.iceTransportPolicy || 'all',
+                    bundlePolicy: webrtcCfg.bundlePolicy || 'max-bundle',
+                    rtcpMuxPolicy: webrtcCfg.rtcpMuxPolicy || 'require',
+                    sdpSemantics: webrtcCfg.sdpSemantics || 'unified-plan',
+                    iceCandidatePoolSize: webrtcCfg.iceCandidatePoolSize || 0
                 };
+
+                // Log summarized ICE servers (without credentials)
+                try {
+                    const stunCount = iceServers.filter(s => String(s.urls).includes('stun:')).length;
+                    const turnCount = iceServers.filter(s => String(s.urls).includes('turn:')).length;
+                    log(`ICE servers configured - STUN: ${stunCount}, TURN: ${turnCount}`, 'NETWORK');
+                    log(`RTCConfiguration: ${JSON.stringify({iceTransportPolicy: pcConfig.iceTransportPolicy, bundlePolicy: pcConfig.bundlePolicy, rtcpMuxPolicy: pcConfig.rtcpMuxPolicy, sdpSemantics: pcConfig.sdpSemantics, iceCandidatePoolSize: pcConfig.iceCandidatePoolSize})}`, 'NETWORK');
+                } catch {}
                 
                 const pc = new RTCPeerConnection(pcConfig);
-                
+
                 // Add transceivers
-                pc.addTransceiver('audio', { direction: 'recvonly' });
-                pc.addTransceiver('video', { direction: 'recvonly' });
+                const audioTransceiver = pc.addTransceiver('audio', { direction: 'recvonly' });
+                const videoTransceiver = pc.addTransceiver('video', { direction: 'recvonly' });
+
+                // Prefer codecs from backend configuration
+                try {
+                    if (RTCRtpReceiver.getCapabilities) {
+                        const vPref = (webrtcCfg.preferredCodecs && webrtcCfg.preferredCodecs.video) || 'H264';
+                        const aPref = (webrtcCfg.preferredCodecs && webrtcCfg.preferredCodecs.audio) || 'opus';
+
+                        const vCaps = RTCRtpReceiver.getCapabilities('video');
+                        const aCaps = RTCRtpReceiver.getCapabilities('audio');
+
+                        if (vCaps && Array.isArray(vCaps.codecs) && videoTransceiver.setCodecPreferences) {
+                            const vOrdered = [
+                                ...vCaps.codecs.filter(c => (c.mimeType || '').toLowerCase() === `video/${vPref.toLowerCase()}`),
+                                ...vCaps.codecs.filter(c => (c.mimeType || '').toLowerCase().startsWith('video/') && (c.mimeType || '').toLowerCase() !== `video/${vPref.toLowerCase()}`)
+                            ];
+                            if (vOrdered.length) videoTransceiver.setCodecPreferences(vOrdered);
+                        }
+
+                        if (aCaps && Array.isArray(aCaps.codecs) && audioTransceiver.setCodecPreferences) {
+                            const aOrdered = [
+                                ...aCaps.codecs.filter(c => (c.mimeType || '').toLowerCase() === `audio/${aPref.toLowerCase()}`),
+                                ...aCaps.codecs.filter(c => (c.mimeType || '').toLowerCase().startsWith('audio/') && (c.mimeType || '').toLowerCase() !== `audio/${aPref.toLowerCase()}`)
+                            ];
+                            if (aOrdered.length) audioTransceiver.setCodecPreferences(aOrdered);
+                        }
+                    }
+                } catch (e) {
+                    log(`Codec preference setup skipped: ${e.message}`, 'WARN');
+                }
+
+                // Extra WebRTC diagnostics - controlled by backend config
+                const debugWebRTC = config?.performance?.avatarDebugWebrtc || false;
+                try {
+                    pc.addEventListener('icegatheringstatechange', () => {
+                        if (debugWebRTC) log(`ICE gathering state: ${pc.iceGatheringState}`, 'NETWORK');
+                    });
+                    pc.addEventListener('signalingstatechange', () => {
+                        if (debugWebRTC) log(`Signaling state: ${pc.signalingState}`, 'NETWORK');
+                    });
+                    pc.addEventListener('icecandidate', (ev) => {
+                        if (debugWebRTC) log(`ICE candidate: ${ev.candidate ? 'present' : 'null'}`, 'NETWORK');
+                    });
+                    pc.addEventListener('icecandidateerror', (ev) => {
+                        log(`ICE candidate error: ${ev.errorText || 'unknown'}`, 'ERROR');
+                    });
+                    pc.addEventListener('negotiationneeded', () => {
+                        if (debugWebRTC) log('Negotiation needed', 'NETWORK');
+                    });
+                } catch {}
 
                 // Variables para controlar los tracks
                 let videoTrackReceived = false;
@@ -634,13 +758,30 @@
                     }
                 };
 
-                pc.onconnectionstatechange = () => {
+                pc.onconnectionstatechange = async () => {
                     log(`PeerConnection state: ${pc.connectionState}`, 'NETWORK');
+                    const recfg = (config && config.webrtc && config.webrtc.reconnect) || {};
                     if (pc.connectionState === 'connected') {
                         updateAvatarStatus('Connected');
+                        _webrtcRetryCount = 0;
+                    } else if (pc.connectionState === 'disconnected') {
+                        if (recfg.iceRestartOnDisconnect && pc.restartIce) {
+                            log('Attempting ICE restart due to disconnected state', 'NETWORK');
+                            try { pc.restartIce(); } catch {}
+                        }
                     } else if (pc.connectionState === 'failed') {
                         updateAvatarStatus('Failed');
-                        setTimeout(() => initializeAzureSpeechAvatar(), 3000);
+                        const maxRetries = recfg.maxRetries ?? 5;
+                        const backoff = recfg.backoffMs ?? 500;
+                        if (typeof window._webrtcRetryCount === 'undefined') window._webrtcRetryCount = 0;
+                        if (window._webrtcRetryCount < maxRetries) {
+                            const wait = backoff * Math.pow(2, window._webrtcRetryCount);
+                            log(`Reinitializing avatar after failure in ${wait}ms (attempt ${window._webrtcRetryCount+1}/${maxRetries})`, 'NETWORK');
+                            window._webrtcRetryCount++;
+                            setTimeout(() => initializeAzureSpeechAvatar(), wait);
+                        } else {
+                            log('Max reconnect attempts reached. Manual retry required.', 'ERROR');
+                        }
                     }
                 };
 
@@ -648,37 +789,93 @@
                     log(`ICE connection state: ${pc.iceConnectionState}`, 'NETWORK');
                 };
 
+                // Optional: monitor stats periodically for diagnostics
+                try {
+                    if (pc.getStats) {
+                        if (window._webrtcStatsTimer) clearInterval(window._webrtcStatsTimer);
+                        window._webrtcStatsTimer = setInterval(async () => {
+                            try {
+                                const report = await pc.getStats();
+                                let inboundVideo = null, inboundAudio = null;
+                                report.forEach(s => {
+                                    if (s.type === 'inbound-rtp' && s.kind === 'video') inboundVideo = s;
+                                    if (s.type === 'inbound-rtp' && s.kind === 'audio') inboundAudio = s;
+                                });
+                                if (inboundVideo || inboundAudio) {
+                                    log(`Inbound stats - video: ${inboundVideo?.bytesReceived || 0} bytes, audio: ${inboundAudio?.bytesReceived || 0} bytes`, 'METRICS');
+                                }
+                            } catch {}
+                        }, 5000);
+                    }
+                } catch {}
+
                 // Create Speech Config
-                const speechConfig = window.SpeechSDK.SpeechConfig.fromSubscription(
-                    AZURE_SPEECH_KEY, 
-                    AZURE_SPEECH_REGION
-                );
+                // Obtain short-lived STS token for Speech (no subscription key in client)
+                log('[AVATAR-INIT] Fetching Speech STS token from server', 'NETWORK');
+                const tokenResp = await fetch('/api/speech-token', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
                 
-                speechConfig.speechSynthesisVoiceName = "es-AR-ElenaNeural";
-                speechConfig.speechSynthesisLanguage = "es-AR";
+                if (!tokenResp.ok) {
+                    const errorText = await tokenResp.text();
+                    log(`[AVATAR-INIT] Speech token request failed: ${tokenResp.status} - ${errorText}`, 'ERROR');
+                    throw new Error(`Speech token error ${tokenResp.status}: ${errorText}`);
+                }
+                
+                const tokenJson = await tokenResp.json();
+                const speechToken = tokenJson.token;
+                const speechRegion = tokenJson.region;
+                
+                log(`[AVATAR-INIT] Speech token obtained for region: ${speechRegion}`, 'SUCCESS');
+                
+                if (config?.performance?.avatarDebugInit) {
+                    log('[AVATAR-INIT] Token details', 'DEBUG', {
+                        hasToken: !!speechToken,
+                        tokenLength: speechToken?.length,
+                        region: speechRegion
+                    });
+                }
+
+                const speechConfig = window.SpeechSDK.SpeechConfig.fromAuthorizationToken(
+                    speechToken,
+                    speechRegion
+                );
+
+                // Use backend-provided voice and language
+                const voiceCfg = (config && config.voice) || {};
+                if (voiceCfg.name) speechConfig.speechSynthesisVoiceName = voiceCfg.name;
+                if (voiceCfg.language) speechConfig.speechSynthesisLanguage = voiceCfg.language;
+
+                log(`Speech config set - voice: ${speechConfig.speechSynthesisVoiceName}, language: ${speechConfig.speechSynthesisLanguage}`, 'AVATAR');
                 
                 // Create video format
                 const videoFormat = new window.SpeechSDK.AvatarVideoFormat();
-                videoFormat.width = 1920;
-                videoFormat.height = 1080;
-                videoFormat.bitrate = 2000000;
-                videoFormat.frameRate = 25;
+                const vCfg = (config && config.avatar && config.avatar.video) || {};
+                videoFormat.width = vCfg.resolution?.width ?? 1920;
+                videoFormat.height = vCfg.resolution?.height ?? 1080;
+                videoFormat.bitrate = vCfg.bitrate ?? 2000000;
+                videoFormat.frameRate = vCfg.frameRate ?? 25;
                 
                 // Create avatar config
+                const aCfg = (config && config.avatar) || {};
                 const avatarConfig = new window.SpeechSDK.AvatarConfig(
-                    AZURE_AVATAR_CHARACTER,
-                    AZURE_AVATAR_STYLE,
+                    aCfg.character || 'meg',
+                    aCfg.style || 'business',
                     videoFormat
                 );
                 
-                if (avatarConfig.backgroundColor !== undefined) {
-                    avatarConfig.backgroundColor = '#FFFFFFFF';
+                if (avatarConfig.backgroundColor !== undefined && aCfg.background && aCfg.background.color) {
+                    avatarConfig.backgroundColor = aCfg.background.color;
                 }
                 
                 log('Creating Avatar Synthesizer', 'AVATAR', {
-                    character: AZURE_AVATAR_CHARACTER,
-                    style: AZURE_AVATAR_STYLE,
-                    voice: "es-AR-TomasNeural",
+                    character: aCfg.character || 'meg',
+                    style: aCfg.style || 'business',
+                    voice: voiceCfg.name || '',
                     bitrate: videoFormat.bitrate,
                     resolution: `${videoFormat.width}x${videoFormat.height}`
                 });
@@ -719,6 +916,27 @@
                             );
                         }
                     }, 2000);
+
+                    // Schedule periodic Speech STS token refresh (production best practice)
+                    try {
+                        if (window._speechTokenTimer) clearInterval(window._speechTokenTimer);
+                        window._speechTokenTimer = setInterval(async () => {
+                            try {
+                                const tr = await fetch('/api/speech-token');
+                                if (!tr.ok) return;
+                                const tj = await tr.json();
+                                // Reinitialize avatar with fresh token to avoid expiration during long sessions
+                                if (azureSpeechAvatarSynthesizer && azureSpeechAvatarConnected) {
+                                    await stopAzureSpeechAvatar();
+                                    await initializeAzureSpeechAvatar();
+                                }
+                            } catch (e) {
+                                log(`Speech token refresh failed: ${e.message}`, 'ERROR');
+                            }
+                        }, 9 * 60 * 1000); // ~9 minutes
+                    } catch (e) {
+                        log(`Failed to schedule STS token refresh: ${e.message}`, 'WARN');
+                    }
                 }
                 
             } catch (error) {
@@ -726,6 +944,9 @@
                 console.error('Full error:', error);
                 updateAvatarStatus('Failed');
                 showError(`Avatar initialization failed: ${error.message}`);
+            } finally {
+                // Always reset the flag
+                isInitializingAvatar = false;
             }
         }
         
@@ -804,30 +1025,73 @@
             }
         }
         
+        // Helper function to ensure configuration is loaded
+        async function ensureConfiguration() {
+            if (!config) {
+                log('Configuration not loaded, fetching...', 'INFO');
+                const initialized = await initializeSystem();
+                if (!initialized || !config) {
+                    throw new Error('Failed to load configuration from backend');
+                }
+            }
+            return config;
+        }
+        
         // Test function for avatar only
         async function testAvatarOnly() {
             try {
                 log('Testing avatar independently', 'INFO');
                 
+                // Check SDK readiness
                 if (!window.sdkReady) {
-                    alert('SDK not ready. Please wait for initialization.');
-                    return;
+                    log('SDK not ready, waiting...', 'WARNING');
+                    if (window.sdkLoadPromise) {
+                        await window.sdkLoadPromise;
+                    }
+                    if (!window.sdkReady) {
+                        const msg = 'SDK not ready after waiting. Please refresh the page.';
+                        log(msg, 'ERROR');
+                        alert(msg);
+                        return;
+                    }
                 }
                 
+                // Check configuration
+                if (!config) {
+                    log('Configuration not loaded, fetching...', 'INFO');
+                    await ensureConfiguration();
+                    if (!config) {
+                        const msg = 'Failed to load configuration. Check backend connection.';
+                        log(msg, 'ERROR');
+                        alert(msg);
+                        return;
+                    }
+                }
+                
+                // Initialize avatar if not connected
                 if (!azureSpeechAvatarConnected) {
+                    log('Avatar not connected, initializing...', 'INFO');
                     await initializeAzureSpeechAvatar();
+                    
+                    // Wait for connection to establish
                     await new Promise(resolve => setTimeout(resolve, 3000));
                 }
                 
+                // Test speech
                 if (azureSpeechAvatarConnected) {
-                    makeAvatarSpeak("Esta es una prueba del sistema de avatar. Si puedes verme y escucharme, el avatar está funcionando correctamente.");
+                    const testMessage = "Esta es una prueba del sistema de avatar. Si puedes verme y escucharme, el avatar está funcionando correctamente.";
+                    log(`Testing avatar speech: "${testMessage}"`, 'INFO');
+                    makeAvatarSpeak(testMessage);
                 } else {
-                    alert('Avatar not connected. Check the console for errors.');
+                    const msg = 'Avatar not connected after initialization. Check console for detailed errors.';
+                    log(msg, 'ERROR');
+                    alert(msg);
                 }
                 
             } catch (error) {
                 log(`Avatar test failed: ${error.message}`, 'ERROR');
-                alert(`Avatar test failed: ${error.message}`);
+                console.error('Full avatar test error:', error);
+                alert(`Avatar test failed: ${error.message}\nCheck console for details.`);
             }
         }
         
@@ -931,13 +1195,40 @@
                 log('Initializing Azure OpenAI Realtime system', 'INFO');
                 updateStatus('Inicializando sistema...');
                 
-                const configResponse = await fetch('/api/voice-live-config');
+                // Fetch configuration from backend
+                const configResponse = await fetch('/api/voice-live-config', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+                
                 if (!configResponse.ok) {
-                    throw new Error('Error al cargar la configuración desde el backend');
+                    const errorText = await configResponse.text();
+                    log(`Failed to load configuration: ${configResponse.status} - ${errorText}`, 'ERROR');
+                    throw new Error(`Error loading configuration: ${configResponse.status}`);
                 }
                 
                 config = await configResponse.json();
-                log('Configuración cargada desde el backend', 'SUCCESS', config);
+                
+                // Validate essential configuration
+                if (!config.deployment || !config.apiVersion) {
+                    throw new Error('Invalid configuration received from backend');
+                }
+                
+                // Store config globally for debugging
+                window.__voiceLiveConfig = config;
+                
+                log('Configuration loaded from backend', 'SUCCESS');
+                log('Configuration details', 'INFO', {
+                    deployment: config.deployment,
+                    model: config.model,
+                    avatarEnabled: config.avatar?.enabled,
+                    avatarCharacter: config.avatar?.character,
+                    avatarStyle: config.avatar?.style,
+                    speechRegion: config.features?.speech_service
+                });
                 
                 document.getElementById('badge-realtime').classList.remove('bg-blue-500/20', 'text-sky-300');
                 document.getElementById('badge-realtime').classList.add('bg-green-500/20', 'text-green-300');
@@ -960,48 +1251,94 @@
                 
                 const clientId = document.getElementById('clientId').value;
                 
-                // Initialize Socket.IO connection
+                // Initialize Socket.IO connection with production-ready reconnection params
                 socket = io({
-                    transports: ['websocket', 'polling'],
+                    transports: ['websocket'],
+                    reconnection: true,
+                    reconnectionDelay: 1000,
+                    reconnectionDelayMax: 4000,
+                    timeout: 20000,
                     query: { client_id: clientId }
                 });
                 
                 // Socket.IO connection events
                 socket.on('connect', () => {
-                    log('Socket.IO connected, establishing Realtime proxy', 'PROXY');
+                    log('[PROXY] Socket.IO connected, establishing Realtime proxy', 'PROXY');
                     updateProxyStatus('✓', true);
+                    
+                    // Enhanced logging
+                    if (config?.performance?.socketioDebugEvents) {
+                        log('[SOCKETIO-DEBUG] Emitting realtime_connect with client_id: ' + clientId, 'DEBUG');
+                    }
 
                     // Request Realtime API connection through proxy
                     socket.emit('realtime_connect', {
                         client_id: clientId
                     });
                 });
+
+                // Consolidated realtime_connected handler - SINGLE LISTENER
+                socket.on('realtime_connected', async (data) => {
+                    try {
+                        log('[REALTIME-CONNECTED] Connected to Azure OpenAI Realtime via proxy', 'SUCCESS', data);
+                        realtimeConnected = true;
+                        updateStatus('Conectado a Azure OpenAI Realtime');
+                        updateConnectionStatus('Conectado');
+                        updateProxyStatus('✓', true);
+                        reconnectAttempts = 0;
+                        
+                        // Setup session first
+                        setupSession();
+                        
+                        // Initialize avatar if needed
+                        if (!azureSpeechAvatarConnected) {
+                            log('[REALTIME-CONNECTED] Initializing Avatar...', 'INFO');
+                            await initializeAzureSpeechAvatar();
+                        }
+                    } catch (error) {
+                        log(`[REALTIME-CONNECTED] Error: ${error.message}`, 'ERROR');
+                        console.error('Full error:', error);
+                    }
+                });
                 
                 socket.on('disconnect', () => {
-                    log('Socket.IO disconnected', 'PROXY');
+                    log('[SOCKETIO] Socket.IO disconnected', 'PROXY');
                     updateProxyStatus('X', false);
                     realtimeConnected = false;
                     sessionActive = false;
                     updateUI('idle');
                 });
                 
-                // Realtime API proxy events
-                socket.on('realtime_connected', (data) => {
-                    log('Connected to Azure OpenAI Realtime via proxy', 'SUCCESS', data);
-                    realtimeConnected = true;
-                    updateStatus('Conectado a Azure OpenAI Realtime');
-                    updateConnectionStatus('Conectado');
-                    updateProxyStatus('✓', true);
-                    reconnectAttempts = 0;
-                    setupSession();
-                });
-                
                 socket.on('realtime_message', (data) => {
+                    // Immediate log to confirm event reception
+                    console.log('[REALTIME_MESSAGE] Raw event received:', data);
+                    
                     try {
                         const message = JSON.parse(data.data);
+                        
+                        // Always log session.updated events for debugging Avatar issues
+                        if (message.type === 'session.updated' || message.type === 'session.created') {
+                            log(`[CRITICAL-EVENT] Received ${message.type} event`, 'SUCCESS', {
+                                type: message.type,
+                                hasSession: !!message.session,
+                                sessionId: message.session?.id
+                            });
+                        }
+                        
+                        // Enhanced logging for Socket.IO events
+                        if (config?.performance?.socketioDebugEvents) {
+                            log(`[SOCKETIO-DEBUG] Received realtime_message event`, 'DEBUG', {
+                                type: message.type,
+                                object: message.object,
+                                hasSession: !!message.session,
+                                eventSize: JSON.stringify(message).length
+                            });
+                        }
+                        
                         handleRealtimeEvent(message);
                     } catch (error) {
-                        log(`Message parsing error: ${error.message}`, 'ERROR');
+                        log(`[ERROR] Message parsing failed: ${error.message}`, 'ERROR');
+                        console.error('Full message parsing error:', error, data);
                     }
                 });
                 
@@ -1261,14 +1598,18 @@
                     await audioContext.resume();
                 }
                 
+                // Build audio constraints from backend config (with safe defaults)
+                const ac = (config && config.webrtc && config.webrtc.audioConstraints) || {};
                 const constraints = {
                     audio: {
-                        channelCount: 1,
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
+                        channelCount: ac.channelCount ?? 1,
+                        echoCancellation: ac.echoCancellation ?? true,
+                        noiseSuppression: ac.noiseSuppression ?? true,
+                        autoGainControl: ac.autoGainControl ?? true,
+                        sampleRate: ac.sampleRate ?? 48000
                     }
                 };
+                log(`Using audio constraints: ${JSON.stringify(constraints.audio)}`, 'AUDIO');
                 
                 mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
                 log('Microphone access granted', 'SUCCESS');
@@ -1605,6 +1946,16 @@
         
         async function handleRealtimeEvent(event) {
             const eventType = event.type;
+            
+            // Enhanced event logging based on configuration
+            if (config?.performance?.socketioDebugEvents || config?.performance?.clientLogLevel === 'DEBUG') {
+                log(`[REALTIME] Processing event: ${eventType}`, 'DEBUG', {
+                    type: eventType,
+                    hasSession: !!event.session,
+                    hasItem: !!event.item,
+                    eventKeys: Object.keys(event).slice(0, 10)
+                });
+            }
 
             // Enhanced logging for function calls
             if (eventType.includes('function_call') || eventType.includes('tool')) {
@@ -1820,16 +2171,72 @@
 
         async function handleSessionUpdated(event) {
             updateStatus('Session configured');
-            log('Session updated', 'SUCCESS');
+            log('[SESSION-UPDATE] Session updated event received', 'SUCCESS');
+            
+            // Always log session update for Avatar debugging
+            log('[SESSION-UPDATE] Session state', 'INFO', {
+                sessionActive: sessionActive,
+                azureSpeechAvatarConnected: azureSpeechAvatarConnected,
+                configLoaded: !!config,
+                avatarEnabled: config?.avatar?.enabled,
+                sdkReady: window.sdkReady
+            });
+            
+            // Enhanced logging for session update
+            if (config?.performance?.avatarDebugInit) {
+                log('[SESSION-DEBUG] Full session update details', 'DEBUG', {
+                    sessionActive: sessionActive,
+                    azureSpeechAvatarConnected: azureSpeechAvatarConnected,
+                    configLoaded: !!config,
+                    avatarEnabled: config?.avatar?.enabled,
+                    eventKeys: Object.keys(event),
+                    sessionId: event?.session?.id
+                });
+            }
             
             if (!sessionActive) {
+                log('[SESSION-UPDATE] Session not active, starting initialization sequence', 'INFO');
                 await startAudioCapture();
                 sessionActive = true;
                 startSessionTimer();
                 
-                // Initialize Azure Speech Avatar
-                await initializeAzureSpeechAvatar();
+                // Initialize Azure Speech Avatar with error handling and retry
+                try {
+                    log('[AVATAR] Starting Avatar initialization process', 'INFO');
+                    
+                    // Ensure SDK is ready before initializing avatar
+                    if (!window.sdkReady) {
+                        log('Waiting for SDK to be ready before initializing Avatar', 'WARNING');
+                        await window.sdkLoadPromise;
+                    }
+                    
+                    // Ensure configuration is loaded
+                    if (!config) {
+                        log('Configuration not loaded, cannot initialize Avatar', 'ERROR');
+                        return;
+                    }
+                    
+                    await initializeAzureSpeechAvatar();
+                    log('Avatar initialization completed', 'SUCCESS');
+                } catch (error) {
+                    log(`Failed to initialize Avatar: ${error.message}`, 'ERROR');
+                    console.error('Avatar initialization error:', error);
+                    
+                    // Schedule retry after delay
+                    setTimeout(async () => {
+                        try {
+                            log('Retrying Avatar initialization', 'INFO');
+                            await initializeAzureSpeechAvatar();
+                        } catch (retryError) {
+                            log(`Avatar retry failed: ${retryError.message}`, 'ERROR');
+                        }
+                    }, 3000);
+                }
+            } else {
+                log('[SESSION-UPDATE] Session already active, skipping initialization', 'INFO');
             }
+            
+            log('[SESSION-UPDATE] handleSessionUpdated completed', 'DEBUG');
         }
 
         function handleSpeechStarted(event) {

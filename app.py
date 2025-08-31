@@ -3,7 +3,7 @@
 # Production Server with Avatar Support - Hardened with Socket.IO Proxy
 # ================================
 
-from flask import Flask, render_template, Response, request, jsonify, make_response, g
+from flask import Flask, render_template, Response, request, jsonify, make_response, g, copy_current_request_context
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import os
@@ -107,6 +107,8 @@ AVATAR_VIDEO_BITRATE = int(os.environ.get('AVATAR_VIDEO_BITRATE', 2000000))
 AVATAR_VIDEO_FRAMERATE = int(os.environ.get('AVATAR_VIDEO_FRAMERATE', 25))
 AVATAR_VIDEO_CODEC = os.environ.get('AVATAR_VIDEO_CODEC', 'H264')
 AVATAR_VIDEO_QUALITY = os.environ.get('AVATAR_VIDEO_QUALITY', 'high')
+AVATAR_KEYFRAME_INTERVAL = int(os.environ.get('AVATAR_KEYFRAME_INTERVAL', 2000))
+AVATAR_HARDWARE_ACCELERATION = os.environ.get('AVATAR_HARDWARE_ACCELERATION', 'true').lower() == 'true'
 
 # Voice Configuration
 VOICE_NAME = os.environ.get('VOICE_NAME', 'es-AR-TomasNeural')
@@ -116,6 +118,8 @@ VOICE_PITCH = os.environ.get('VOICE_PITCH', '0Hz')
 VOICE_RATE = os.environ.get('VOICE_RATE', '1.0')
 VOICE_VOLUME = os.environ.get('VOICE_VOLUME', '100')
 LANGUAGE = os.environ.get('LANGUAGE', 'es-AR')
+VOICE_OUTPUT_FORMAT = os.environ.get('VOICE_OUTPUT_FORMAT', 'audio-24khz-96kbitrate-mono-mp3')
+VOICE_STREAM_LATENCY_MODE = os.environ.get('VOICE_STREAM_LATENCY_MODE', 'low')
 
 # WebRTC Configuration
 WEBRTC_MAX_BITRATE = int(os.environ.get('WEBRTC_MAX_BITRATE', 3000000))
@@ -123,12 +127,31 @@ WEBRTC_MIN_BITRATE = int(os.environ.get('WEBRTC_MIN_BITRATE', 500000))
 WEBRTC_ENABLE_ECHO_CANCELLATION = os.environ.get('WEBRTC_ENABLE_ECHO_CANCELLATION', 'true').lower() == 'true'
 WEBRTC_ENABLE_NOISE_SUPPRESSION = os.environ.get('WEBRTC_ENABLE_NOISE_SUPPRESSION', 'true').lower() == 'true'
 WEBRTC_ENABLE_AUTO_GAIN_CONTROL = os.environ.get('WEBRTC_ENABLE_AUTO_GAIN_CONTROL', 'true').lower() == 'true'
+WEBRTC_AUDIO_SAMPLE_RATE = int(os.environ.get('WEBRTC_AUDIO_SAMPLE_RATE', 48000))
+WEBRTC_AUDIO_CHANNELS = int(os.environ.get('WEBRTC_AUDIO_CHANNELS', 1))
+WEBRTC_ICE_TRANSPORT_POLICY = os.environ.get('WEBRTC_ICE_TRANSPORT_POLICY', 'all')  # 'all' or 'relay'
+WEBRTC_BUNDLE_POLICY = os.environ.get('WEBRTC_BUNDLE_POLICY', 'max-bundle')
+WEBRTC_RTCP_MUX_POLICY = os.environ.get('WEBRTC_RTCP_MUX_POLICY', 'require')
+WEBRTC_ICE_CANDIDATE_POOL_SIZE = int(os.environ.get('WEBRTC_ICE_CANDIDATE_POOL_SIZE', 0))
+WEBRTC_PREFERRED_VIDEO_CODEC = os.environ.get('WEBRTC_PREFERRED_VIDEO_CODEC', 'H264')
+WEBRTC_PREFERRED_AUDIO_CODEC = os.environ.get('WEBRTC_PREFERRED_AUDIO_CODEC', 'opus')
+WEBRTC_ICE_RESTART_ON_DISCONNECT = os.environ.get('WEBRTC_ICE_RESTART_ON_DISCONNECT', 'true').lower() == 'true'
+WEBRTC_RECONNECT_BACKOFF_MS = int(os.environ.get('WEBRTC_RECONNECT_BACKOFF_MS', 500))
+WEBRTC_RECONNECT_MAX_RETRIES = int(os.environ.get('WEBRTC_RECONNECT_MAX_RETRIES', 5))
+USE_PUBLIC_STUN = os.environ.get('USE_PUBLIC_STUN', 'true').lower() == 'true'
+PUBLIC_STUN_SERVERS = [s.strip() for s in os.environ.get('PUBLIC_STUN_SERVERS', 'stun:stun.l.google.com:19302').split(',') if s.strip()]
 
 # Performance Configuration
 ENABLE_METRICS = os.environ.get('ENABLE_METRICS', 'true').lower() == 'true'
 ENABLE_DETAILED_LOGGING = os.environ.get('ENABLE_DETAILED_LOGGING', 'false').lower() == 'true'
+ENABLE_AUDIO_DELTA_LOGGING = os.environ.get('ENABLE_AUDIO_DELTA_LOGGING', 'false').lower() == 'true'
 MAX_SESSION_DURATION = int(os.environ.get('MAX_SESSION_DURATION', 3600))
 SESSION_CLEANUP_INTERVAL = int(os.environ.get('SESSION_CLEANUP_INTERVAL', 300))
+AVATAR_DEBUG_WEBRTC = os.environ.get('AVATAR_DEBUG_WEBRTC', 'false').lower() == 'true'
+SOCKETIO_DEBUG_EVENTS = os.environ.get('SOCKETIO_DEBUG_EVENTS', 'false').lower() == 'true'
+SOCKETIO_DEBUG_THREADS = os.environ.get('SOCKETIO_DEBUG_THREADS', 'false').lower() == 'true'
+AVATAR_DEBUG_INIT = os.environ.get('AVATAR_DEBUG_INIT', 'false').lower() == 'true'
+CLIENT_LOG_LEVEL = os.environ.get('CLIENT_LOG_LEVEL', 'INFO')
 
 # Server Configuration
 FLASK_PORT = int(os.environ.get('FLASK_PORT', 5000))
@@ -164,9 +187,27 @@ original_list, replacement_list = load_text_corrections()
 # ================================
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET', str(uuid.uuid4()))
+# Production-focused defaults (override via env)
+app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'true').lower() == 'true'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+app.config['PREFERRED_URL_SCHEME'] = os.environ.get('PREFERRED_URL_SCHEME', 'https')
+
+# Respect proxy headers if running behind a reverse proxy (e.g., NGINX)
+if os.environ.get('USE_PROXY_FIX', 'false').lower() == 'true':
+    try:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+        logger.warning("ProxyFix enabled to honor X-Forwarded-* headers")
+    except Exception as _e:
+        logger.error(f"Failed to enable ProxyFix: {_e}")
 
 # CORS with enhanced configuration
 cors_origins = os.environ.get('CORS_ORIGINS', '*').split(',')
+CORS_ORIGIN_WILDCARD = any(o.strip() == '*' for o in cors_origins)
+if os.environ.get('NODE_ENV', 'production') == 'production' and CORS_ORIGIN_WILDCARD:
+    logger.warning("CORS_ORIGINS is '*' in production. Consider setting specific origins.")
 CORS(app, 
      origins=cors_origins,
      supports_credentials=True,
@@ -174,16 +215,51 @@ CORS(app,
      allow_headers=['Content-Type', 'X-Requested-With', 'Authorization'])
 
 # SocketIO with proper configuration for Socket.IO CDN
+
+def _choose_async_mode():
+    """Pick the best async_mode available for Flask-SocketIO.
+
+    Priority:
+    1) SOCKETIO_ASYNC_MODE env var if provided
+    2) eventlet if installed
+    3) gevent if installed
+    4) threading (dev fallback)
+    """
+    mode = os.environ.get('SOCKETIO_ASYNC_MODE')
+    if mode:
+        return mode
+    try:
+        import eventlet  # noqa: F401
+        return 'eventlet'
+    except Exception:
+        try:
+            import gevent  # noqa: F401
+            return 'gevent'
+        except Exception:
+            return 'threading'
+
+
+_async_mode = _choose_async_mode()
+if _async_mode == 'threading':
+    logger.warning("Socket.IO async_mode=threading. Use eventlet/gevent in production for WebSockets.")
+
+# Socket.IO tuning (higher defaults to avoid ping timeouts in background tabs)
+ping_timeout_cfg = int(os.environ.get('SOCKETIO_PING_TIMEOUT', 60))
+ping_interval_cfg = int(os.environ.get('SOCKETIO_PING_INTERVAL', 25))
+max_http_buffer_size_cfg = int(os.environ.get('SOCKETIO_MAX_BUFFER_SIZE', 1000000))
+
 socketio = SocketIO(
     app,
     cors_allowed_origins="*",  # Allow all origins for Socket.IO
-    ping_timeout=int(os.environ.get('SOCKETIO_PING_TIMEOUT', 20)),
-    ping_interval=int(os.environ.get('SOCKETIO_PING_INTERVAL', 10)),
-    max_http_buffer_size=int(os.environ.get('SOCKETIO_MAX_BUFFER_SIZE', 1000000)),
-    async_mode='threading',
+    ping_timeout=ping_timeout_cfg,
+    ping_interval=ping_interval_cfg,
+    max_http_buffer_size=max_http_buffer_size_cfg,
+    async_mode=_async_mode,
     logger=False,  # Disable Socket.IO logging to reduce noise
     engineio_logger=False  # Set to True for debugging
 )
+
+logger.warning(f"Socket.IO configured: mode={_async_mode}, ping_timeout={ping_timeout_cfg}, ping_interval={ping_interval_cfg}")
 
 # ================================
 # REALTIME API WEBSOCKET PROXY
@@ -202,6 +278,10 @@ class RealtimeWebSocketProxy:
         self.ws = None
         self.is_connected = False
         self.thread = None
+        # Store reference to socketio for direct emission
+        self.socketio_server = socketio
+        # Store Flask app for thread-safe context
+        self.app = app
         
     def connect(self):
         """Establece conexión con Azure OpenAI Realtime API"""
@@ -235,36 +315,166 @@ class RealtimeWebSocketProxy:
             
         except Exception as e:
             logger.error(f"Failed to connect to Realtime API: {e}")
-            socketio.emit('realtime_error', {
-                'error': str(e),
-                'client_id': self.client_id
-            }, room=self.sid)
+            # Use both room and to parameters for better delivery
+            error_data = {'error': str(e), 'client_id': self.client_id}
+            socketio.emit('realtime_error', error_data, room=self.sid)
+            socketio.emit('realtime_error', error_data, to=self.sid)
             return False
     
     def on_open(self, ws):
         """Callback cuando se abre la conexión"""
         logger.info(f"Realtime WebSocket opened for client {self.client_id}")
         self.is_connected = True
-        socketio.emit('realtime_connected', {
+        
+        # Log detallado del estado de conexión
+        logger.debug(f"[REALTIME] Connection established - Client: {self.client_id}, SID: {self.sid}")
+        logger.debug(f"[REALTIME] WebSocket state: Connected={self.is_connected}")
+        
+        # Verify Socket.IO room assignment
+        if SOCKETIO_DEBUG_EVENTS:
+            logger.debug(f"[SOCKETIO-ROOM] Proxy will emit to room: {self.sid}")
+            logger.debug(f"[SOCKETIO-ROOM] Verifying client socket is in correct room")
+        
+        # Enviar configuración inicial de sesión
+        initial_config = {
+            "type": "session.update",
+            "session": {
+                "modalities": ["text", "audio"],
+                "instructions": "Eres un asistente de YPF. Responde en español argentino de forma clara y concisa.",
+                "voice": os.environ.get('VOICE_MODEL', 'alloy'),
+                "input_audio_format": "pcm16",
+                "output_audio_format": "pcm16",
+                "input_audio_transcription": {
+                    "model": "whisper-1"
+                },
+                "turn_detection": {
+                    "type": "server_vad",
+                    "threshold": 0.5,
+                    "prefix_padding_ms": 300,
+                    "silence_duration_ms": 500
+                },
+                "tools": [{
+                    "type": "function",
+                    "name": "neuro_rag",
+                    "description": "Consultar el sistema agentico de RAG de YPF",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Consulta del usuario"
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }]
+            }
+        }
+        
+        logger.info(f"[REALTIME] Sending initial session configuration for client {self.client_id}")
+        
+        # Enhanced logging for session configuration
+        if SOCKETIO_DEBUG_EVENTS or ENABLE_DETAILED_LOGGING:
+            logger.debug(f"[REALTIME] Session update config: type={initial_config.get('type')}, modalities={initial_config.get('session', {}).get('modalities')}")
+        
+        self.send(initial_config)
+        
+        # Log confirmation of send
+        if SOCKETIO_DEBUG_EVENTS:
+            logger.debug(f"[REALTIME] Session update command sent to Realtime API for client {self.client_id}")
+        
+        # Enhanced Socket.IO emission with room tracking
+        event_data = {
             'status': 'connected',
-            'client_id': self.client_id
-        }, room=self.sid)
+            'client_id': self.client_id,
+            'session_configured': True
+        }
+        
+        if SOCKETIO_DEBUG_EVENTS:
+            logger.debug(f"[SOCKETIO-EMIT] Emitting 'realtime_connected' to room {self.sid}")
+            logger.debug(f"[SOCKETIO-EMIT] Event data: {event_data}")
+        
+        # Thread-safe emission from WebSocket callback thread
+        try:
+            with self.app.app_context():
+                # Use global socketio instance with explicit namespace
+                socketio.emit('realtime_connected', event_data, room=self.sid, namespace='/')
+                
+                if SOCKETIO_DEBUG_EVENTS:
+                    logger.debug(f"[SOCKETIO-EMIT] Successfully emitted 'realtime_connected' to room {self.sid}")
+                if SOCKETIO_DEBUG_THREADS:
+                    logger.debug(f"[SOCKETIO-THREAD] Emitted from thread: {threading.current_thread().name}")
+        except Exception as e:
+            logger.error(f"[SOCKETIO-EMIT] Error emitting realtime_connected: {e}")
+            if SOCKETIO_DEBUG_THREADS:
+                logger.error(f"[SOCKETIO-THREAD] Thread: {threading.current_thread().name}")
     
     def on_message(self, ws, message):
         """Callback cuando se recibe un mensaje"""
         try:
-            # Reenviar el mensaje al cliente via Socket.IO
-            socketio.emit('realtime_message', {
+            # Enhanced logging for Socket.IO event emission
+            if SOCKETIO_DEBUG_EVENTS:
+                msg_data = json.loads(message) if isinstance(message, str) else message
+                msg_type = msg_data.get('type', 'unknown')
+                logger.debug(f"[SOCKETIO] Emitting realtime_message to client {self.client_id} (SID: {self.sid}) - Event type: {msg_type}")
+            
+            # Prepare message data
+            message_data = {
                 'data': message,
                 'client_id': self.client_id
-            }, room=self.sid)
+            }
+            
+            # Enhanced room-based emission with debugging
+            if SOCKETIO_DEBUG_EVENTS:
+                logger.debug(f"[SOCKETIO-ROOM-EMIT] About to emit 'realtime_message' to room: {self.sid}")
+                logger.debug(f"[SOCKETIO-ROOM-EMIT] Client ID: {self.client_id}, Message type: {msg_type}")
+            
+            # Use thread-safe emission for realtime messages from WebSocket thread
+            try:
+                with self.app.app_context():
+                    # Use global socketio instance with explicit namespace for thread safety
+                    socketio.emit('realtime_message', message_data, room=self.sid, namespace='/')
+                    
+                    if SOCKETIO_DEBUG_EVENTS:
+                        logger.debug(f"[SOCKETIO-EMIT] realtime_message emitted to room {self.sid}")
+                    if SOCKETIO_DEBUG_THREADS:
+                        logger.debug(f"[SOCKETIO-THREAD] Message emitted from thread {threading.current_thread().name}")
+            except Exception as e:
+                logger.error(f"[SOCKETIO-EMIT] Error emitting realtime_message: {e}")
+                if SOCKETIO_DEBUG_THREADS:
+                    logger.error(f"[SOCKETIO-THREAD] Thread: {threading.current_thread().name}, SID: {self.sid}")
+            
+            # Log successful emission
+            if SOCKETIO_DEBUG_EVENTS:
+                logger.debug(f"[SOCKETIO-ROOM-EMIT] Successfully emitted 'realtime_message' to room {self.sid}")
             
             if ENABLE_DETAILED_LOGGING:
                 msg_data = json.loads(message)
                 msg_type = msg_data.get('type', 'unknown')
-                # Solo loguear eventos importantes, no audio
-                if msg_type not in ['response.audio.delta', 'response.audio_transcript.delta']:
-                    logger.debug(f"Realtime message type: {msg_type}")
+                
+                # Log detallado según el tipo de mensaje
+                if msg_type == 'session.created':
+                    logger.info(f"[REALTIME] Session created for client {self.client_id}")
+                    logger.debug(f"[REALTIME] Session details: {json.dumps(msg_data.get('session', {}), indent=2)}")
+                elif msg_type == 'session.updated':
+                    logger.info(f"[REALTIME] Session updated for client {self.client_id}")
+                    # Forward session.updated event to client for Avatar initialization
+                    if SOCKETIO_DEBUG_EVENTS:
+                        logger.debug(f"[REALTIME] Forwarding session.updated to client {self.client_id}")
+                elif msg_type == 'conversation.item.created':
+                    logger.info(f"[REALTIME] Conversation item created: {msg_data.get('item', {}).get('type', 'unknown')}")
+                elif msg_type == 'response.created':
+                    logger.info(f"[REALTIME] Response created with ID: {msg_data.get('response', {}).get('id', 'unknown')}")
+                elif msg_type == 'response.done':
+                    logger.info(f"[REALTIME] Response completed for client {self.client_id}")
+                elif msg_type == 'error':
+                    logger.error(f"[REALTIME] Error received: {msg_data.get('error', {})}")
+                elif msg_type == 'response.audio.delta':
+                    # Only log audio delta if explicitly enabled (high volume logs)
+                    if ENABLE_AUDIO_DELTA_LOGGING:
+                        logger.debug(f"[REALTIME] Audio delta received for client {self.client_id}")
+                elif msg_type not in ['response.audio_transcript.delta', 'response.text.delta']:
+                    logger.debug(f"[REALTIME] Message type: {msg_type} for client {self.client_id}")
                 
         except Exception as e:
             logger.error(f"Error processing Realtime message: {e}")
@@ -272,22 +482,25 @@ class RealtimeWebSocketProxy:
     def on_error(self, ws, error):
         """Callback cuando ocurre un error"""
         logger.error(f"Realtime WebSocket error for client {self.client_id}: {error}")
-        socketio.emit('realtime_error', {
-            'error': str(error),
-            'client_id': self.client_id
-        }, room=self.sid)
+        # Use both emission strategies for errors
+        error_data = {'error': str(error), 'client_id': self.client_id}
+        self.socketio_server.emit('realtime_error', error_data, room=self.sid)
+        self.socketio_server.emit('realtime_error', error_data, to=self.sid)
     
     def on_close(self, ws, close_status_code=None, close_msg=None):
         """Callback cuando se cierra la conexión"""
         logger.info(f"Realtime WebSocket closed for client {self.client_id} (code: {close_status_code}, msg: {close_msg})")
         self.is_connected = False
         try:
-            socketio.emit('realtime_closed', {
+            # Use both emission strategies for closed event
+            closed_data = {
                 'status': 'disconnected',
                 'client_id': self.client_id,
                 'code': close_status_code,
                 'message': close_msg
-            }, room=self.sid)
+            }
+            self.socketio_server.emit('realtime_closed', closed_data, room=self.sid)
+            self.socketio_server.emit('realtime_closed', closed_data, to=self.sid)
         except Exception as e:
             logger.error(f"Error emitting realtime_closed: {e}")
     
@@ -325,29 +538,53 @@ def handle_realtime_connect(data):
     """Establece conexión proxy con Azure OpenAI Realtime API"""
     client_id = data.get('client_id')
     
+    logger.info(f"[SOCKET.IO] Realtime connect request from client {client_id} (SID: {request.sid})")
+    
+    # Log Socket.IO room assignment
+    if SOCKETIO_DEBUG_EVENTS:
+        logger.debug(f"[SOCKETIO-ROOM] Client {client_id} is in Socket.IO session: {request.sid}")
+        logger.debug(f"[SOCKETIO-ROOM] This SID will be used as the room for message routing")
+    
     if not client_id:
+        logger.error("[SOCKET.IO] No client_id provided in realtime_connect")
         emit('realtime_error', {'error': 'No client_id provided'})
         return
     
     if not AZURE_OPENAI_ENDPOINT or not AZURE_OPENAI_API_KEY:
+        logger.error("[SOCKET.IO] Azure OpenAI Realtime API not configured")
         emit('realtime_error', {'error': 'Azure OpenAI Realtime API not configured'})
         return
     
     try:
+        # Log configuration details
+        logger.debug(f"[SOCKET.IO] Azure config - Endpoint: {AZURE_OPENAI_ENDPOINT}, Deployment: {AZURE_OPENAI_DEPLOYMENT}")
+        
         # Cerrar conexión anterior si existe
         if client_id in realtime_connections:
+            logger.info(f"[SOCKET.IO] Closing existing connection for client {client_id}")
             old_proxy = realtime_connections[client_id]
             old_proxy.close()
             del realtime_connections[client_id]
         
         # Crear nuevo proxy
+        logger.info(f"[SOCKET.IO] Creating new proxy for client {client_id}")
+        # Pass the actual Socket.IO session ID to the proxy for room-based messaging
         proxy = RealtimeWebSocketProxy(client_id, request.sid)
         
+        if SOCKETIO_DEBUG_EVENTS:
+            logger.debug(f"[SOCKETIO-ROOM] Proxy created with SID: {request.sid} for room-based messaging")
+        
         # Conectar al Realtime API
+        logger.info(f"[SOCKET.IO] Initiating connection to Realtime API for client {client_id}")
         if proxy.connect():
             realtime_connections[client_id] = proxy
-            logger.info(f"Realtime proxy established for client {client_id}")
+            logger.info(f"[SOCKET.IO] SUCCESS - Realtime proxy established for client {client_id}")
+            
+            # Log connection stats
+            active_connections = len(realtime_connections)
+            logger.info(f"[SOCKET.IO] Active realtime connections: {active_connections}")
         else:
+            logger.error(f"[SOCKET.IO] Failed to connect to Realtime API for client {client_id}")
             emit('realtime_error', {'error': 'Failed to connect to Realtime API'})
             
     except Exception as e:
@@ -438,34 +675,39 @@ def inject_csp_nonce():
 def add_security_headers(response):
     # CSP por header (no usar <meta http-equiv="Content-Security-Policy"> en el HTML)
     nonce = getattr(g, "csp_nonce", "")
-    
-    # CSP más permisivo para desarrollo
-    csp = (
-        "default-src 'self'; "
-        # Scripts con nonce y CDNs necesarios, incluyendo unsafe-eval para SDK
-        f"script-src 'self' 'nonce-{nonce}' 'unsafe-eval' "
-        "https://cdn.jsdelivr.net "
-        "https://aka.ms "
-        "https://cdn.socket.io "
-        "*.cognitive.microsoft.com "
-        "*.cognitiveservices.azure.com; "
-        # Conexiones permitidas
-        "connect-src 'self' http: https: ws: wss: blob: data:; "
-        # Imágenes y media
-        "img-src 'self' data: blob: https:; "
-        "media-src 'self' blob: mediastream: https:; "
-        # Estilos con unsafe-inline temporalmente
-        f"style-src 'self' 'nonce-{nonce}' 'unsafe-inline'; "
-        # Fonts
-        "font-src 'self' data: https:; "
-        # Workers y frames
-        "worker-src 'self' blob:; "
-        "frame-src 'none'; "
-        # Object
-        "object-src 'none'; "
-        "base-uri 'self'; "
-    )
-    
+    env = os.environ.get('NODE_ENV', 'production')
+
+    if env == 'production':
+        # Strict CSP for production. Allow inline style attributes only (no inline <style> without nonce).
+        csp = (
+            "default-src 'self'; "
+            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://aka.ms https://cdn.socket.io *.cognitive.microsoft.com *.cognitiveservices.azure.com; "
+            "connect-src 'self' http: https: ws: wss: blob: data:; "
+            "img-src 'self' data: blob: https:; "
+            f"style-src-elem 'self' 'nonce-{nonce}'; "
+            "style-src-attr 'unsafe-inline'; "
+            "font-src 'self' data: https:; "
+            "worker-src 'self' blob:; "
+            "frame-src 'none'; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+        )
+    else:
+        # More permissive CSP for development
+        csp = (
+            "default-src 'self'; "
+            f"script-src 'self' 'nonce-{nonce}' 'unsafe-eval' https://cdn.jsdelivr.net https://aka.ms https://cdn.socket.io *.cognitive.microsoft.com *.cognitiveservices.azure.com; "
+            "connect-src 'self' http: https: ws: wss: blob: data:; "
+            "img-src 'self' data: blob: https:; "
+            f"style-src-elem 'self' 'nonce-{nonce}'; "
+            "style-src-attr 'unsafe-inline'; "
+            "font-src 'self' data: https:; "
+            "worker-src 'self' blob:; "
+            "frame-src 'none'; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+        )
+
     response.headers['Content-Security-Policy'] = csp
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
@@ -543,6 +785,14 @@ def get_voice_live_config():
                 "message": "Configure AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY"
             }), 400
 
+        # Build STUN servers list from env if enabled
+        stun_servers = []
+        if USE_PUBLIC_STUN and PUBLIC_STUN_SERVERS:
+            stun_servers = [{"urls": url} for url in PUBLIC_STUN_SERVERS]
+
+        # Determine WebRTC availability: corporate TURN, public STUN, or Azure Speech relay available
+        webrtc_available = bool(ICE_SERVER_URL) or (USE_PUBLIC_STUN and bool(PUBLIC_STUN_SERVERS)) or bool(SPEECH_REGION)
+
         config = {
             "status": "ready",
             "deployment": AZURE_OPENAI_DEPLOYMENT,
@@ -569,8 +819,8 @@ def get_voice_live_config():
                     },
                     "frameRate": AVATAR_VIDEO_FRAMERATE,
                     "quality": AVATAR_VIDEO_QUALITY,
-                    "keyFrameInterval": 2000,
-                    "hardwareAcceleration": True
+                    "keyFrameInterval": AVATAR_KEYFRAME_INTERVAL,
+                    "hardwareAcceleration": AVATAR_HARDWARE_ACCELERATION
                 }
             },
 
@@ -581,8 +831,8 @@ def get_voice_live_config():
                 "quality": VOICE_QUALITY,
                 "prosody": { "pitch": VOICE_PITCH, "rate": VOICE_RATE, "volume": VOICE_VOLUME },
                 "language": LANGUAGE,
-                "outputFormat": "audio-24khz-96kbitrate-mono-mp3",
-                "streamLatencyMode": "low"
+            "outputFormat": VOICE_OUTPUT_FORMAT,
+            "streamLatencyMode": VOICE_STREAM_LATENCY_MODE
             },
 
             # WebRTC
@@ -593,8 +843,8 @@ def get_voice_live_config():
                     "echoCancellation": WEBRTC_ENABLE_ECHO_CANCELLATION,
                     "noiseSuppression": WEBRTC_ENABLE_NOISE_SUPPRESSION,
                     "autoGainControl": WEBRTC_ENABLE_AUTO_GAIN_CONTROL,
-                    "sampleRate": 48000,
-                    "channelCount": 1
+                    "sampleRate": WEBRTC_AUDIO_SAMPLE_RATE,
+                    "channelCount": WEBRTC_AUDIO_CHANNELS
                 },
                 "videoConstraints": {
                     "width": {"ideal": AVATAR_RESOLUTION_WIDTH},
@@ -602,22 +852,37 @@ def get_voice_live_config():
                     "frameRate": {"ideal": AVATAR_VIDEO_FRAMERATE},
                     "facingMode": "user"
                 },
-                "iceTransportPolicy": "all",
-                "bundlePolicy": "max-bundle",
-                "rtcpMuxPolicy": "require",
-                "sdpSemantics": "unified-plan"
+                "iceTransportPolicy": WEBRTC_ICE_TRANSPORT_POLICY,
+                "bundlePolicy": WEBRTC_BUNDLE_POLICY,
+                "rtcpMuxPolicy": WEBRTC_RTCP_MUX_POLICY,
+                "iceCandidatePoolSize": WEBRTC_ICE_CANDIDATE_POOL_SIZE,
+                "sdpSemantics": "unified-plan",
+                "preferredCodecs": {
+                    "video": WEBRTC_PREFERRED_VIDEO_CODEC,
+                    "audio": WEBRTC_PREFERRED_AUDIO_CODEC
+                },
+                "reconnect": {
+                    "iceRestartOnDisconnect": WEBRTC_ICE_RESTART_ON_DISCONNECT,
+                    "backoffMs": WEBRTC_RECONNECT_BACKOFF_MS,
+                    "maxRetries": WEBRTC_RECONNECT_MAX_RETRIES
+                }
             },
 
             # Perf/Features
             "performance": {
                 "enableMetrics": ENABLE_METRICS,
                 "enableDetailedLogging": ENABLE_DETAILED_LOGGING,
+                "enableAudioDeltaLogging": ENABLE_AUDIO_DELTA_LOGGING,
                 "maxSessionDuration": MAX_SESSION_DURATION,
                 "bufferSize": 4096,
                 "latencyHint": "interactive",
                 "preloadAvatar": True,
                 "cacheResponses": True,
-                "enableCompression": True
+                "enableCompression": True,
+                "avatarDebugWebrtc": AVATAR_DEBUG_WEBRTC,
+                "socketioDebugEvents": SOCKETIO_DEBUG_EVENTS,
+                "avatarDebugInit": AVATAR_DEBUG_INIT,
+                "clientLogLevel": CLIENT_LOG_LEVEL
             },
             "features": {
                 "avatar": ENABLE_AVATAR,
@@ -627,21 +892,26 @@ def get_voice_live_config():
                 "backgroundBlur": False,
                 "noiseReduction": True,
                 "autoReconnect": True,
-                "realtimeProxy": True  # Indicar que usamos proxy
+                "realtimeProxy": True,
+                "webrtc": webrtc_available,
+                "speech_service": bool(SPEECH_REGION),
+                "minipywo": MINIPYWO_AVAILABLE
             }
         }
 
         if ICE_SERVER_URL:
-            config["turnServers"] = [{
-                "urls": ICE_SERVER_URL,
-                "username": ICE_SERVER_USERNAME,
-                "credential": ICE_SERVER_PASSWORD,
-                "credentialType": "password"
-            }]
-            config["stunServers"] = [
-                {"urls": "stun:stun.l.google.com:19302"},
-                {"urls": "stun:stun1.l.google.com:19302"}
+            # Support comma-separated list of TURN URLs
+            turn_urls = [u.strip() for u in ICE_SERVER_URL.split(',') if u.strip()]
+            config["turnServers"] = [
+                {
+                    "urls": url,
+                    "username": ICE_SERVER_USERNAME,
+                    "credential": ICE_SERVER_PASSWORD,
+                    "credentialType": "password"
+                } for url in turn_urls
             ]
+        if stun_servers:
+            config["stunServers"] = stun_servers
 
         config["tools"] = [{
             "type": "function",
@@ -718,6 +988,33 @@ def get_speech_token():
         return jsonify({"error": "Failed to generate token"}), 502
     except Exception as e:
         logger.error(f"Error generating speech token: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/avatar-relay", methods=["GET"])
+def get_avatar_relay():
+    """Server-side proxy to fetch Azure Speech Avatar relay ICE credentials.
+
+    Keeps subscription key server-side and returns relay JSON (urls, username, password).
+    """
+    try:
+        if not SPEECH_KEY or not SPEECH_REGION:
+            return jsonify({"error": "Speech Service not configured"}), 400
+
+        relay_url = f"https://{SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/avatar/relay/token/v1"
+        resp = requests.get(
+            relay_url,
+            headers={
+                'Ocp-Apim-Subscription-Key': SPEECH_KEY,
+                'Content-Type': 'application/json'
+            },
+            timeout=10
+        )
+        if resp.status_code < 400 and resp.text:
+            return jsonify(resp.json())
+        logger.error(f"Failed to get avatar relay token: {resp.status_code} {resp.text}")
+        return jsonify({"error": "Failed to obtain relay token"}), 502
+    except Exception as e:
+        logger.error(f"Error getting avatar relay token: {e}")
         return jsonify({"error": str(e)}), 500
 
 # ==== minipywo API (sin cambios funcionales) ====
@@ -852,8 +1149,24 @@ async def minipywo_proxy():
         async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
             logger.debug(f"[{request_id}] HTTP client created with timeout: {REQUEST_TIMEOUT}s")
             
-            response = await client.post(FASTAPI_URL, json=payload)
+            max_attempts = int(os.environ.get('FASTAPI_RETRIES', 3))
+            base_backoff = float(os.environ.get('FASTAPI_RETRY_BACKOFF', 0.5))
+            last_error = None
+            response = None
             
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    response = await client.post(FASTAPI_URL, json=payload)
+                    break
+                except (httpx.RequestError, httpx.ConnectError) as e:
+                    last_error = e
+                    if attempt < max_attempts:
+                        wait = base_backoff * (2 ** (attempt - 1))
+                        logger.warning(f"[{request_id}] FastAPI attempt {attempt} failed: {e}. Retrying in {wait:.2f}s")
+                        await asyncio.sleep(wait)
+                    else:
+                        raise
+
             fastapi_duration = time.time() - fastapi_start_time
             performance_logger.info(f"[{request_id}] FastAPI call duration: {fastapi_duration:.3f}s")
             
@@ -992,6 +1305,32 @@ async def health_check():
             'duration': duration
         }), 503
 
+# Production-grade health endpoints using health_check module
+@app.route('/healthz', methods=['GET'])
+@async_route
+async def healthz():
+    try:
+        from health_check import health_checker
+        status = await health_checker.get_complete_health()
+        code = 200 if status.get('status') == 'healthy' else 503 if status.get('status') == 'unhealthy' else 206
+        return jsonify(status), code
+    except Exception as e:
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/readyz', methods=['GET'])
+@async_route
+async def readyz():
+    """Lightweight readiness check: validates backend FastAPI connectivity only."""
+    try:
+        base_url = FASTAPI_URL.replace('/ask', '')
+        async with httpx.AsyncClient(timeout=3) as client:
+            resp = await client.get(f"{base_url}/health")
+            if resp.status_code == 200:
+                return jsonify({'status': 'ready'}), 200
+            return jsonify({'status': 'not_ready', 'code': resp.status_code}), 503
+    except Exception as e:
+        return jsonify({'status': 'not_ready', 'error': str(e)}), 503
+
 # Optional: Streaming version for long responses with logging
 @app.route('/api/neuro_rag_stream', methods=['POST'])
 @async_route
@@ -1025,10 +1364,28 @@ async def minipywo_proxy_stream():
             nonlocal chunks_sent, total_bytes
             
             try:
-                async with httpx.AsyncClient(timeout=30) as client:
+                async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
                     logger.debug(f"[{request_id}] Opening stream connection to FastAPI")
-                    
-                    async with client.stream('POST', FASTAPI_URL, json=payload) as response:
+
+                    # Retry opening the stream with backoff
+                    max_attempts = int(os.environ.get('FASTAPI_RETRIES', 3))
+                    base_backoff = float(os.environ.get('FASTAPI_RETRY_BACKOFF', 0.5))
+                    last_exc = None
+
+                    for attempt in range(1, max_attempts + 1):
+                        try:
+                            stream_cm = client.stream('POST', FASTAPI_URL, json=payload)
+                            break
+                        except (httpx.RequestError, httpx.ConnectError) as e:
+                            last_exc = e
+                            if attempt < max_attempts:
+                                wait = base_backoff * (2 ** (attempt - 1))
+                                logger.warning(f"[{request_id}] Stream open attempt {attempt} failed: {e}. Retrying in {wait:.2f}s")
+                                await asyncio.sleep(wait)
+                            else:
+                                raise
+
+                    async with stream_cm as response:
                         response_logger.info(f"[{request_id}] Stream response status: {response.status_code}")
                         
                         async for chunk in response.aiter_bytes():
@@ -1287,7 +1644,20 @@ def metrics():
 def handle_connect():
     client_id = request.args.get('client_id', generate_client_id())
     session = get_or_create_session(client_id)
-    logger.info(f"Client connected: {client_id} (sid: {request.sid})")
+    
+    logger.info("="*60)
+    logger.info(f"[SOCKET.IO] NEW CLIENT CONNECTION")
+    logger.info(f"[SOCKET.IO] Client ID: {client_id}")
+    logger.info(f"[SOCKET.IO] Socket ID: {request.sid}")
+    logger.info(f"[SOCKET.IO] Remote Address: {request.remote_addr if hasattr(request, 'remote_addr') else 'Unknown'}")
+    logger.info(f"[SOCKET.IO] Session created at: {session['created_at']}")
+    
+    # Log room assignment for debugging
+    if SOCKETIO_DEBUG_EVENTS:
+        logger.debug(f"[SOCKETIO-ROOM] Client automatically joined room: {request.sid}")
+        logger.debug(f"[SOCKETIO-ROOM] This room will be used for targeted message delivery")
+    
+    logger.info("="*60)
     
     emit('status', {
         'message': 'Connected to Azure Speech Live Voice with Avatar server',
@@ -1308,17 +1678,35 @@ def handle_connect():
 
 @socketio.on("disconnect")
 def handle_disconnect():
-    logger.info(f"Client disconnected (sid: {request.sid})")
-    
-    # Limpiar conexiones Realtime si existen
-    for client_id, proxy in list(realtime_connections.items()):
-        if proxy.sid == request.sid:
+    """Handle client disconnection with proper error handling"""
+    try:
+        # Get session ID safely
+        sid = getattr(request, 'sid', None)
+        if sid:
+            logger.info(f"Client disconnected (sid: {sid})")
+        else:
+            logger.info("Client disconnected (no session ID available)")
+            return
+        
+        # Clean up Realtime connections if they exist
+        connections_to_remove = []
+        for client_id, proxy in list(realtime_connections.items()):
+            if hasattr(proxy, 'sid') and proxy.sid == sid:
+                connections_to_remove.append(client_id)
+        
+        # Remove connections outside the iteration
+        for client_id in connections_to_remove:
             try:
+                proxy = realtime_connections[client_id]
                 proxy.close()
                 del realtime_connections[client_id]
                 logger.info(f"Cleaned up Realtime connection for disconnected client {client_id}")
             except Exception as e:
                 logger.error(f"Error cleaning up connection for {client_id}: {e}")
+                
+    except Exception as e:
+        # Catch any errors to prevent the assertion error
+        logger.error(f"Error in disconnect handler: {e}", exc_info=True)
 
 @socketio.on("realtime_status")
 def handle_realtime_status(data):
@@ -1415,6 +1803,11 @@ def internal_error(error):
     logger.error(f"Internal server error: {error}")
     return jsonify({ 'error': 'Internal server error', 'message': 'An unexpected error occurred', 'status_code': 500 }), 500
 
+# Silence Chrome DevTools well-known probe to avoid noisy 404s
+@app.route('/.well-known/appspecific/com.chrome.devtools.json', methods=['GET'])
+def _chrome_devtools_probe():
+    return ('', 204)
+
 # ==== Session cleanup ====
 
 def cleanup_old_sessions():
@@ -1464,7 +1857,8 @@ if __name__ == "__main__":
     else:
         logger.warning("No ICE/TURN server configured - WebRTC may have connectivity issues")
 
-    logger.warning(f"Avatar support: {ENABLE_AVATAR} ({AVATAR_CHARACTER}/{AVATAR_STYLE}) {AVATAR_RESOLUTION_WIDTH}x{AVATAR_RESOLUTION_HEIGHT}@{AVATAR_VIDEO_FRAMERATE}fps")
+    logger.warning(f"Avatar support: {ENABLE_AVATAR} (Character: {AVATAR_CHARACTER}, Style: {AVATAR_STYLE})")
+    logger.warning(f"Avatar video: {AVATAR_RESOLUTION_WIDTH}x{AVATAR_RESOLUTION_HEIGHT}@{AVATAR_VIDEO_FRAMERATE}fps, Codec: {AVATAR_VIDEO_CODEC}, Bitrate: {AVATAR_VIDEO_BITRATE}bps")
     logger.warning(f"Voice: model={VOICE_MODEL} name={VOICE_NAME} lang={LANGUAGE}")
     logger.warning(f"Version: {APP_VERSION}")
 
@@ -1483,6 +1877,13 @@ if __name__ == "__main__":
     logger.info(f"Log Level: {logging.getLevelName(logger.level)}")
     logger.info("="*50)
 
-    # Production fix: Add allow_unsafe_werkzeug=True for production deployment
-    # In production, use a proper WSGI server like gunicorn or waitress instead
-    socketio.run(app, host=FLASK_HOST, port=FLASK_PORT, debug=False, use_reloader=False, allow_unsafe_werkzeug=True)
+    # In production, run behind gunicorn (eventlet worker) or gevent
+    run_kwargs = dict(host=FLASK_HOST, port=FLASK_PORT, debug=False, use_reloader=False)
+    # Allow Werkzeug only in threading/dev mode
+    try:
+        if socketio.async_mode == 'threading':
+            run_kwargs['allow_unsafe_werkzeug'] = True
+            logger.warning("Running with Werkzeug (dev). For production use eventlet/gevent.")
+    except Exception:
+        pass
+    socketio.run(app, **run_kwargs)
