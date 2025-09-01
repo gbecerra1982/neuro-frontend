@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Neuro - YPF</title>
     <link rel="icon" href="{{ url_for('static', filename='image/favicon.ico') }}" type="image/x-icon">
     <!-- FontAwesome - Carga optimizada con CSS en lugar de múltiples JS -->
@@ -51,7 +51,7 @@
             });
         }
 
-        // Función de carga con fallback mejorada
+        // Load function with improved fallback
         async function loadSDKWithFallback() {
             // Primero intentar con el SDK ya cargado
             try {
@@ -84,7 +84,7 @@
                         script.crossOrigin = 'anonymous';
 
                         script.onload = () => {
-                            // Verificar que el SDK esté realmente cargado
+                            // Verify that SDK is actually loaded
                             setTimeout(() => {
                                 if (typeof window.SpeechSDK !== 'undefined') {
                                     console.log('✅ SDK loaded successfully from:', url);
@@ -160,50 +160,268 @@
         #conversation::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.6);
         }
+        
+        /* TOTEM Display optimizations */
+        #avatarVideoContainer {
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+        }
+        
+        /* TOTEM interface - full screen optimization */
+        .totem-container {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for mobile */
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1e 100%);
+            position: relative;
+        }
+        
+        /* Avatar display for TOTEM - fixed height */
+        .totem-avatar {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 0; /* Important for flex children */
+            width: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+        }
+        
+        /* Ensure avatar video uses full space with dynamic scaling */
+        #avatarVideo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain; /* Always show full avatar */
+            object-position: center center;
+            background: transparent;
+            transition: none; /* Remove any transitions for instant resizing */
+        }
+        
+        /* Responsive scaling to maintain aspect ratio */
+        @media (max-width: 1200px) {
+            #avatarVideo {
+                max-width: 90%;
+                max-height: 90%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            #avatarVideo {
+                max-width: 85%;
+                max-height: 85%;
+            }
+        }
+        
+        #avatarVideoContainer {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            position: relative;
+            overflow: hidden; /* Ensure content doesn't spill */
+        }
+        
+        /* Dynamic aspect ratio handling - removed as we're using object-fit: contain */
+        /* The video will automatically scale to fit within container while showing full content */
+        
+        /* TOTEM control panel */
+        .totem-controls {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 2rem;
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0; /* Prevent shrinking */
+            position: relative;
+            z-index: 20; /* Above chat overlay */
+        }
+        
+        /* Chat info display - fixed at bottom */
+        .totem-chat {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.95);
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+            max-height: 120px;
+            z-index: 5;
+            pointer-events: none; /* Allow clicks to pass through except for scrollable area */
+        }
+        
+        .totem-chat > div {
+            pointer-events: auto; /* Re-enable interaction for content */
+        }
+        
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            /* Adjust header for mobile */
+            .totem-container > div:first-child {
+                padding: 0.5rem !important;
+            }
+            
+            .totem-container > div:first-child img {
+                height: 2rem !important;
+            }
+            
+            .totem-container > div:first-child div {
+                font-size: 1rem !important;
+            }
+            
+            /* Adjust control panel for mobile */
+            .totem-controls {
+                padding: 1rem;
+            }
+            
+            /* Smaller button for mobile */
+            #controlButton {
+                width: 5rem !important;
+                height: 5rem !important;
+                font-size: 1.5rem !important;
+            }
+            
+            #controlButtonText {
+                font-size: 0.875rem !important;
+                margin-top: 0.5rem !important;
+            }
+            
+            /* Adjust chat area */
+            .totem-chat {
+                max-height: 80px;
+            }
+            
+            .totem-chat > div {
+                padding: 0.5rem 1rem !important;
+            }
+            
+            #conversation {
+                max-height: 60px !important;
+                font-size: 0.875rem !important;
+            }
+            
+            /* Adjust avatar placeholder text */
+            #avatarPlaceholder {
+                font-size: 2rem !important;
+                padding: 1rem !important;
+                text-align: center;
+            }
+            
+            /* Adjust stop button */
+            #stopButton {
+                width: 4rem !important;
+                height: 4rem !important;
+                font-size: 1.25rem !important;
+                bottom: 1rem !important;
+            }
+        }
+        
+        /* Small mobile devices (iPhone SE, etc) */
+        @media (max-width: 375px) {
+            #controlButton {
+                width: 4rem !important;
+                height: 4rem !important;
+                font-size: 1.25rem !important;
+            }
+            
+            .totem-container > div:first-child div {
+                font-size: 0.875rem !important;
+            }
+            
+            #avatarPlaceholder {
+                font-size: 1.5rem !important;
+            }
+        }
+        
+        /* Tablet responsive (iPad) */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            #controlButton {
+                width: 8rem !important;
+                height: 8rem !important;
+                font-size: 3rem !important;
+            }
+            
+            #stopButton {
+                width: 6rem !important;
+                height: 6rem !important;
+                font-size: 2.5rem !important;
+            }
+            
+            #avatarPlaceholder {
+                font-size: 4rem !important;
+            }
+        }
+        
+        /* Landscape orientation adjustments */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .totem-controls {
+                padding: 0.5rem;
+            }
+            
+            #controlButton {
+                width: 3rem !important;
+                height: 3rem !important;
+                font-size: 1rem !important;
+            }
+            
+            .totem-chat {
+                max-height: 60px;
+            }
+            
+            #avatarPlaceholder {
+                font-size: 1.5rem !important;
+            }
+        }
     </style>
 </head>
 
-<body
-    class="font-sans bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white min-h-screen flex flex-col items-center justify-center p-5">
+<body class="font-sans text-white overflow-hidden">
     <input type="hidden" id="clientId" value="{{ client_id }}">
 
-    <!-- Proxy Status Indicator -->
-    <div class="fixed top-2.5 right-2.5 bg-black/80 px-2.5 py-1.5 rounded-full font-mono text-xs border border-red-500/50 z-[999] "
+    <!-- TOTEM Status Indicator -->
+    <div class="fixed top-4 right-4 bg-black/90 px-3 py-2 rounded-lg font-mono text-sm border border-white/20 z-[999] hidden"
         id="proxyIndicator">
-        <span id="proxyStatus" class="text-red-500 bg-red500/10 w-16 h-16 font-bold">X</span>
+        <span id="proxyStatus" class="text-green-500">ONLINE</span>
     </div>
-    <!-- image neuro -->
-    <div class="fixed bottom-2.5 right-2.5 w-35 h-12 ">
-        <img src="{{ url_for('static', filename='image/Logo-Neuro (Blanco).png') }}"
-            class="w-full h-full md:block hidden" alt="logo neuro">
-    </div>
-    <!-- Loading Indicator -->
-    <div
-        class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/90 p-8 rounded-2xl border-2 border-green-400/30 z-[2000]">
-        <div class="border-4 border-white/10 border-t-green-400 rounded-full w-12 h-12 animate-spin mx-auto mb-5"></div>
-        <div class="text-green-400 text-center">Initializing Azure Speech SDK...</div>
-    </div>
-
-    <!-- image ypf -->
-    <div class="mb-4">
-        <div class=" fixed top-2.5 left-2.5 justify-start items-start">
-            <img src="{{ url_for('static', filename='image/ypf-logo.png') }}" class="w-30 h-10" alt="logo YPF">
+    <!-- TOTEM Display Container -->
+    <div class="totem-container">
+        
+        <!-- TOTEM Header -->
+        <div class="bg-black/90 px-8 py-4 flex items-center justify-between border-b border-white/10">
+            <img src="{{ url_for('static', filename='image/ypf-logo.png') }}" class="h-12" alt="YPF">
+            <div class="text-2xl font-bold">ASISTENTE VIRTUAL</div>
+            <img src="{{ url_for('static', filename='image/Logo-Neuro (Blanco).png') }}" class="h-10" alt="Neuro">
         </div>
-    </div>
-    <div class="container w-full h-full">
-
-        <div class="flex  items-start w-3/4 mx-auto justify-center flex-wrap  md:flex-row flex-col md:gap-10 gap-5">
-            <div class="flex flex-col items-center m-auto w-1/2">
-                <div class=" h-5/2  aspect-[4/3] w-full max-w-md min-w-md h-75 rounded-3xl bg-gradient-to-br from-slate-800 to-slate-700 flex items-center justify-center text-8xl mb-5 shadow-2xl shadow-blue-500/30 transition-all duration-300 border-2 border-white/10 relative overflow-hidden"
-                    id="avatarContainer">
-                    <div class="md:text-9xl text-5xl text-black/30 w-full h-full flex items-center justify-center bg-white"
-                        id="avatarPlaceholder">AI</div>
+        
+        <!-- TOTEM Avatar Display Area -->
+        <div class="totem-avatar">
+            <div class="relative w-full h-full">
+                <!-- Avatar Placeholder -->
+                <div class="w-full h-full flex items-center justify-center"
+                    id="avatarContainer" style="background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%)">
+                    <div class="text-8xl text-white/30 font-light"
+                        id="avatarPlaceholder">TOQUE PARA INICIAR</div>
                 </div>
-                <div class=""  h-5/2 aspect-[4/3] w-full max-w-md h-75 rounded-3xl overflow-hidden  shadow-2xl shadow-orange-500/40 bg-black relative block" id="avatarVideoContainer">
-                    <!-- Muted helps autoplay policies on some browsers; unmute after media starts if needed -->
-                    <video id="avatarVideo" autoplay playsinline muted></video>
-                </div>
-                <div class="my-5 font-semibold text-green-400 text-xl min-h-[30px] hidden" id="status">Iniciando SDK...
+                
+                <!-- Avatar Video Container -->
+                <div class="w-full h-full bg-black absolute inset-0" id="avatarVideoContainer" style="display: none;">
+                    <!-- Avatar video -->
+                    <video id="avatarVideo" class="w-full h-full object-contain" autoplay playsinline muted></video>
+                    
+                    <!-- TOTEM Stop button - Large and centered at bottom -->
+                    <button
+                        class="absolute bottom-10 left-1/2 transform -translate-x-1/2 w-32 h-32 rounded-full border-4 border-white/20 cursor-pointer text-5xl bg-gradient-to-br from-red-600 to-red-800 text-white transition-all duration-200 shadow-2xl hover:scale-105 active:scale-95 z-50"
+                        id="stopButton" style="display: none;">
+                        <span class="font-bold">STOP</span>
+                    </button>
                 </div>
 
                 <div
@@ -236,69 +454,51 @@
                     </div>
                 </div>
             </div>
-
-            <div class="justify-center m-auto  flex flex-col items-center gap-5">
+        </div>
+        
+        <!-- TOTEM Control Panel -->
+        <div class="totem-controls">
+            <!-- Main TOTEM Control Button -->
+            <div class="flex justify-center items-center gap-8">
                 <button
-                    class="w-20 h-20 rounded-full border-none cursor-pointer text-5xl md:text-5xl text-4xl bg-gradient-to-br from-primary to-secondary text-white transition-all duration-150 shadow-2xl shadow-black/30 relative overflow-hidden hover:scale-105 active:scale-95 disabled:bg-gradient-to-br disabled:from-gray-600 disabled:to-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="w-40 h-40 rounded-full border-4 border-white/30 cursor-pointer text-6xl bg-gradient-to-br from-blue-600 to-blue-800 text-white transition-all duration-200 shadow-2xl hover:scale-105 active:scale-95 disabled:bg-gradient-to-br disabled:from-gray-700 disabled:to-gray-900 disabled:cursor-not-allowed disabled:opacity-50 font-bold"
                     id="controlButton" disabled>
-                    <span id="controlButtonIcon"><i class="fa-solid fa-microphone"></i></span>
+                    <span id="controlButtonIcon">START</span>
                 </button>
-                <div class="text-slate-300 text-sm max-w-[220px] text-center">
-                    <span id="controlButtonText">Iniciando SDK...</span>
-                </div>
-                <div class="flex gap-2.5 justify-center mt-5">
-                    <button
-                        class="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg cursor-pointer text-xs transition-all duration-200 hover:bg-white/20 hover:border-white/30 hidden"
-                        id="debugPanelBtn">Consola de Debug</button>
-                    <button
-                        class="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg cursor-pointer text-xs transition-all duration-200 hover:bg-white/20 hover:border-white/30"
-                        id="avatarMetricsBtn">Métricas de Avatar</button>
-                    <button
-                        class="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg cursor-pointer text-xs transition-all duration-200 hover:bg-white/20 hover:border-white/30"
-                        id="clearConversationBtn">Limpiar Chat</button>
-                    <button
-                        class="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg cursor-pointer text-xs transition-all duration-200 hover:bg-white/20 hover:border-white/30"
-                        id="testAvatarBtn">Test Avatar</button>
-                </div>
             </div>
-        </div>
-
-        <div class="max-w-4xl mx-auto my-8">
-            <div class="text-xl font-semibold mb-4 text-slate-300">Chat</div>
-            <div class="max-h-[10rem] overflow-y-auto text-left bg-white/5 rounded-2xl pl-5 pr-4 py-5 backdrop-blur-sm border border-white/10"
-                id="conversation">
-                <div
-                    class="my-4 px-5 py-4 max-w-[90%] break-words fade-in bg-gradient-to-br from-yellow-500/30 to-yellow-500/10 mx-auto rounded-2xl text-sm">
-                    <strong class="text-yellow-300 block mb-1 text-sm font-bold">Neuro:</strong>
-                    Inicializando Azure Speech SDK y componentes del sistema...
-                </div>
+            <div class="text-center mt-4">
+                <span id="controlButtonText" class="text-xl text-white/70">INICIANDO SISTEMA...</span>
             </div>
-        </div>
-
-        <div class="mt-10 p-6 bg-white/5 rounded-2xl text-sm text-slate-300 backdrop-blur-sm hidden">
-            <strong>Technical Implementation:</strong><br>
-            Production-ready Azure OpenAI Realtime API with Azure Speech Avatar, automatic reconnection,
-            comprehensive error handling, and performance monitoring.
-            <div class="flex gap-2.5 justify-center flex-wrap mt-4">
-                <span class="bg-blue-500/20 text-sky-300 px-3 py-1 rounded-full text-xs font-semibold"
-                    id="badge-realtime">Azure OpenAI Realtime</span>
-                <span class="bg-blue-500/20 text-sky-300 px-3 py-1 rounded-full text-xs font-semibold"
-                    id="badge-avatar">Azure Speech Avatar</span>
-                <span class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">24kHz Audio
-                    Resampling</span>
-                <span class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">Server
-                    VAD</span>
-                <span
-                    class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">Auto-Reconnect</span>
-                <span class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">Quality
-                    Monitoring</span>
-                <span class="bg-blue-500/20 text-sky-300 px-3 py-1 rounded-full text-xs font-semibold">Function
-                    Calling</span>
-                <span class="bg-blue-500/20 text-sky-300 px-3 py-1 rounded-full text-xs font-semibold">Error
-                    Recovery</span>
+            
+            <!-- TOTEM System controls - Hidden by default -->
+            <div class="hidden absolute bottom-4 right-4 flex gap-2">
+                <button
+                    class="px-3 py-2 bg-white/10 border border-white/20 text-white rounded text-xs"
+                    id="avatarMetricsBtn">Metrics</button>
+                <button
+                    class="px-3 py-2 bg-white/10 border border-white/20 text-white rounded text-xs"
+                    id="clearConversationBtn">Clear</button>
+                <button
+                    class="px-3 py-2 bg-white/10 border border-white/20 text-white rounded text-xs"
+                    id="testAvatarBtn">Test</button>
             </div>
         </div>
     </div>
+    
+    <!-- TOTEM Chat Display - Fixed at bottom -->
+    <div class="totem-chat">
+        <div class="px-8 py-4">
+            <div class="max-h-[100px] overflow-y-auto text-center"
+                id="conversation">
+                <div class="text-xl text-white/80">
+                    SISTEMA INICIANDO...
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hidden status element -->
+    <div class="hidden" id="status">Iniciando SDK...</div>
 
     <!-- Debug Panel -->
     <div class="fixed md:top-5 md:right-5 top-auto right-auto  my-5  bg-black/95 p-4 rounded-lg text-xs text-green-300 max-w-md max-h-[600px] overflow-y-auto hidden border border-green-400/30 font-mono z-[1000]"
@@ -737,11 +937,22 @@
                                     if (videoContainer) {
                                         videoContainer.style.display = 'block';
                                         videoContainer.classList.remove('hidden');
+                                        // Trigger resize handler when avatar becomes visible
+                                        setTimeout(() => {
+                                            if (typeof handleAvatarResize === 'function') {
+                                                handleAvatarResize();
+                                            }
+                                        }, 100);
                                     }
                                     if (avatarContainer) {
-                                        // avatarContainer.style.display = 'none';
-                                        avatarContainer.classList.add('hidden');
-                                        avatarContainer.classList.remove('block');
+                                        // Completely hide placeholder when video is active
+                                        avatarContainer.style.display = 'none';
+                                    }
+                                    
+                                    // Show fullscreen button immediately when video is ready
+                                    const fullscreenBtn = document.getElementById('fullscreenBtn');
+                                    if (fullscreenBtn) {
+                                        fullscreenBtn.style.display = 'block';
                                     }
                                     
                                     // Reproducir
@@ -976,6 +1187,11 @@
                     if (avatarContainer) {
                         avatarContainer.style.display = 'flex';
                     }
+                    // Hide fullscreen button
+                    const fullscreenBtn = document.getElementById('fullscreenBtn');
+                    if (fullscreenBtn) {
+                        fullscreenBtn.style.display = 'none';
+                    }
                     if (videoEl) {
                         videoEl.srcObject = null;
                     }
@@ -1004,13 +1220,13 @@
                     text,
                     (result) => {
                         log('Avatar speech completed', 'SUCCESS');
-                        // Asegurar que el audio no esté muteado
+                        // Ensure audio is not muted
                         const video = document.getElementById('avatarVideo');
                         if (video) {
                             video.muted = false;
                             video.volume = 1.0;
                             
-                            // Si está pausado, reproducir
+                            // If paused, play
                             if (video.paused) {
                                 video.play().catch(e => console.log('Autoplay blocked:', e));
                             }
@@ -1144,10 +1360,8 @@
                     controlButtonText.textContent = 'Pulsa para iniciar la conversación';
                 }
                 
-                // Update badges
-                // document.getElementById('badge-avatar').classList.add('active');
-                document.getElementById('badge-avatar').classList.remove('bg-blue-500/20', 'text-sky-300');
-                document.getElementById('badge-avatar').classList.add('bg-green-500/20', 'text-green-300');
+                // Update badges - removed for TOTEM interface
+                // Badge elements removed in TOTEM mode
 
                 
                 // Add system message
@@ -1230,8 +1444,7 @@
                     speechRegion: config.features?.speech_service
                 });
                 
-                document.getElementById('badge-realtime').classList.remove('bg-blue-500/20', 'text-sky-300');
-                document.getElementById('badge-realtime').classList.add('bg-green-500/20', 'text-green-300');
+                // Badge elements removed in TOTEM mode
 
                 updateStatus('Sistema inicializado');
                 
@@ -1501,7 +1714,7 @@
                     log(`Sending to Realtime: ${message.type}`, 'NETWORK', message);
                 }
                 
-                // Validaciones específicas para function call outputs
+                // Specific validations for function call outputs
                 if (message.type === 'conversation.item.create' && message.item) {
                     const item = message.item;
                     
@@ -1790,7 +2003,7 @@
             // Usar ToolCallManager para manejar deltas
             const wasBuffered = !toolCallManager.handleArgumentDelta(callId, delta);
             
-            // Mantener compatibilidad con código existente
+            // Maintain compatibility with existing code
             const entry = toolCalls.get(callId);
             if (entry && event?.delta) {
                 entry.args += event.delta;
@@ -2058,7 +2271,7 @@
                             const callId = event.item.call_id;
                             const name = event.item.name || 'unknown';
                             
-                            // Si no está registrado, registrarlo ahora
+                            // If not registered, register now
                             if (!toolCallManager.isActive(callId) && !toolCallManager.isCompleted(callId)) {
                                 toolCallManager.registerToolCall(callId, name, event.item);
                             }
@@ -2408,22 +2621,22 @@
                 switch (state) {
                     case 'listening':
                         avatarContainer.classList.add('avatar-listening');
-                        if (avatarPlaceholder) avatarPlaceholder.textContent = '👂';
+                        if (avatarPlaceholder) avatarPlaceholder.textContent = 'Listening';
                         break;
 
                     case 'vad-active':
                         avatarContainer.classList.add('avatar-vad-active');
-                        if (avatarPlaceholder) avatarPlaceholder.textContent = '🗣️';
+                        if (avatarPlaceholder) avatarPlaceholder.textContent = 'Speaking';
                         break;
 
                     case 'thinking':
                         avatarContainer.classList.add('avatar-thinking');
-                        if (avatarPlaceholder) avatarPlaceholder.textContent = '🤔';
+                        if (avatarPlaceholder) avatarPlaceholder.textContent = 'Thinking';
                         break;
 
                     case 'speaking':
                         avatarContainer.classList.add('avatar-speaking');
-                        if (avatarPlaceholder) avatarPlaceholder.textContent = '💬';
+                        if (avatarPlaceholder) avatarPlaceholder.textContent = 'Responding';
                         break;
 
                     case 'idle':
@@ -2665,6 +2878,151 @@
                 }
             });
         }
+
+        // Funcionalidad de pantalla completa para el avatar
+        function setupFullscreenButton() {
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            const videoContainer = document.getElementById('avatarVideoContainer');
+            const fullscreenIcon = document.getElementById('fullscreenIcon');
+            
+            if (fullscreenBtn && videoContainer) {
+                fullscreenBtn.addEventListener('click', () => {
+                    if (!document.fullscreenElement) {
+                        // Entrar en pantalla completa
+                        if (videoContainer.requestFullscreen) {
+                            videoContainer.requestFullscreen();
+                        } else if (videoContainer.webkitRequestFullscreen) {
+                            videoContainer.webkitRequestFullscreen();
+                        } else if (videoContainer.msRequestFullscreen) {
+                            videoContainer.msRequestFullscreen();
+                        }
+                        
+                        // Cambiar icono a salir de pantalla completa
+                        if (fullscreenIcon) {
+                            fullscreenIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9V4m0 0h5M9 4l5 5m-5 11v-5m0 5h5m-5-5l5 5m6-10h5m0 0v5m0-5l-5 5m5 6h-5m5 0v-5m0 5l-5-5"></path>';
+                        }
+                    } else {
+                        // Salir de pantalla completa
+                        if (document.exitFullscreen) {
+                            document.exitFullscreen();
+                        } else if (document.webkitExitFullscreen) {
+                            document.webkitExitFullscreen();
+                        } else if (document.msExitFullscreen) {
+                            document.msExitFullscreen();
+                        }
+                        
+                        // Cambiar icono a entrar en pantalla completa
+                        if (fullscreenIcon) {
+                            fullscreenIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>';
+                        }
+                    }
+                });
+                
+                // Escuchar cambios de pantalla completa
+                document.addEventListener('fullscreenchange', () => {
+                    if (!document.fullscreenElement && fullscreenIcon) {
+                        fullscreenIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>';
+                    }
+                });
+            }
+        }
+        
+        // Setup stop button functionality
+        function setupStopButton() {
+            const stopBtn = document.getElementById('stopButton');
+            const controlBtn = document.getElementById('controlButton');
+            
+            if (stopBtn && controlBtn) {
+                stopBtn.addEventListener('click', () => {
+                    log('Stop button clicked - ending session', 'INFO');
+                    // Trigger the same action as control button when session is active
+                    if (sessionActive) {
+                        controlBtn.click();
+                    }
+                });
+            }
+        }
+        
+        // Handle dynamic avatar resizing
+        function handleAvatarResize() {
+            const video = document.getElementById('avatarVideo');
+            const container = document.getElementById('avatarVideoContainer');
+            
+            if (!video || !container) return;
+            
+            // Get container dimensions
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            // Video natural aspect ratio (16:9)
+            const videoAspectRatio = 16 / 9;
+            
+            // Calculate optimal dimensions
+            let videoWidth = containerWidth;
+            let videoHeight = videoWidth / videoAspectRatio;
+            
+            // If height exceeds container, scale by height instead
+            if (videoHeight > containerHeight) {
+                videoHeight = containerHeight;
+                videoWidth = videoHeight * videoAspectRatio;
+            }
+            
+            // Apply calculated dimensions
+            video.style.width = `${Math.min(videoWidth, containerWidth)}px`;
+            video.style.height = `${Math.min(videoHeight, containerHeight)}px`;
+            
+            // Log dimensions for debugging
+            console.log('Avatar resize:', {
+                container: { width: containerWidth, height: containerHeight },
+                video: { width: videoWidth, height: videoHeight }
+            });
+        }
+        
+        // Debounce resize events for performance
+        let resizeTimeout;
+        function debounceResize() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(handleAvatarResize, 100);
+        }
+        
+        // Setup resize observer for more reliable detection
+        function setupResizeObserver() {
+            const container = document.getElementById('avatarVideoContainer');
+            if (!container || !window.ResizeObserver) return;
+            
+            const resizeObserver = new ResizeObserver(entries => {
+                for (let entry of entries) {
+                    handleAvatarResize();
+                }
+            });
+            
+            resizeObserver.observe(container);
+        }
+        
+        // Initialize buttons when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            setupFullscreenButton();
+            setupStopButton();
+            
+            // Setup avatar resizing
+            handleAvatarResize();
+            setupResizeObserver();
+            
+            // Also handle window resize events
+            window.addEventListener('resize', debounceResize);
+            
+            // Handle orientation changes on mobile
+            window.addEventListener('orientationchange', () => {
+                setTimeout(handleAvatarResize, 100);
+            });
+            
+            // Handle when avatar video loads
+            const avatarVideo = document.getElementById('avatarVideo');
+            if (avatarVideo) {
+                avatarVideo.addEventListener('loadedmetadata', handleAvatarResize);
+                avatarVideo.addEventListener('play', handleAvatarResize);
+            }
+        });
 
         // Cleanup on page unload
         window.addEventListener('beforeunload', async () => {

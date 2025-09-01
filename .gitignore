@@ -15,6 +15,7 @@ antenv/
 .venv/
 node_modules/
 package*
+.playwright*/
 # ===============================
 # DISTRIBUTION / PACKAGING
 # ===============================
