@@ -13,7 +13,8 @@ env.bak/
 venv.bak/
 antenv/
 .venv/
-
+node_modules/
+package*
 # ===============================
 # DISTRIBUTION / PACKAGING
 # ===============================
@@ -101,7 +102,7 @@ local.settings.json
 tmp/
 temp/
 00-backup/
-
+deploy.zip
 # ===============================
 # DEVELOPMENT FILES
 # ===============================
